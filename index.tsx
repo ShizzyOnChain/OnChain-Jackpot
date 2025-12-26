@@ -4,10 +4,21 @@ import ReactDOM from "react-dom/client";
 // --- CONSTANTS ---
 const COLORS = {
   midnight: "#063A30",
+  midnight2: "#0A4A3D",
   mintBg: "#E9FFF6",
+  mintBg2: "#DFFAEF",
   mintStroke: "#7FE6C3",
   mintText: "#0D6B58",
   cardBorder: "rgba(6, 58, 48, 0.10)",
+  shadow: "0 18px 50px rgba(6,58,48,0.10)",
+};
+
+const LOTTERY_CONFIG = {
+  numberCount: 4,
+  maxNumber: 9,
+  ticketPrice: 1.00,
+  currency: "M-USDT",
+  network: "MerlinChain"
 };
 
 const MERLIN_NETWORK = {
@@ -47,22 +58,11 @@ const Logo: React.FC<{ size?: number }> = ({ size = 52 }) => {
   );
 };
 
-// --- COMPONENTS ---
-const Step: React.FC<{ num: number; title: string; desc: string }> = ({ num, title, desc }) => (
-  <div className="flex flex-col items-center text-center">
-    <div className="h-12 w-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-black text-xl mb-4 shadow-sm border border-emerald-200">
-      {num}
-    </div>
-    <h4 className="font-bold mb-2 text-sm text-[#063A30]">{title}</h4>
-    <p className="text-[11px] text-[#0D6B58] opacity-60 leading-relaxed font-medium">{desc}</p>
-  </div>
-);
-
 // --- UTILS ---
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
 const getWinningNumbersForSlot = (timestamp: number): number[] => {
-  const seed = new Date(timestamp).toISOString() + "onchain-jackpot-v2-merlin";
+  const seed = new Date(timestamp).toISOString() + "onchain-jackpot-v2-merlin-stable";
   let hash = 0;
   for (let i = 0; i < seed.length; i++) {
     hash = ((hash << 5) - hash) + seed.charCodeAt(i);
@@ -83,8 +83,8 @@ function App() {
   const [account, setAccount] = useState<string | null>(null);
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
   const [mintQuantity, setMintQuantity] = useState(1);
-  const [jackpot, setJackpot] = useState(0.0);
-  const [stats, setStats] = useState({ totalMints: 0, activePlayers: 0 });
+  const [jackpot, setJackpot] = useState(1240.50);
+  const [stats, setStats] = useState({ totalMints: 4520, activePlayers: 1120 });
   const [now, setNow] = useState(new Date());
   const [txStatus, setTxStatus] = useState<'idle' | 'mining' | 'success'>('idle');
   const [showResultsModal, setShowResultsModal] = useState(false);
@@ -117,7 +117,7 @@ function App() {
         rule4: "Referral fees (0.02 M-USDT) are paid instantly upon successful minting.",
         disclaimer: "Legal Disclaimer",
         disclaimerText: "OnChain Jackpot is a decentralized game of chance. Participating in lotteries involves risk. Digital assets are highly volatile. Use only funds you can afford to lose.",
-        latestResult: "Latest Result", settledMsg: "LOTTERY #0 SUCCESSFULLY SETTLED",
+        latestResult: "Latest Result", settledMsg: "LOTTERY SUCCESSFULLY SETTLED",
         verifyingOnchain: "Verifying Onchain Entropy...", revealSuccess: "Settlement Complete"
       },
       zh: {
@@ -140,7 +140,7 @@ function App() {
         rule4: "成功铸造后，推荐费（0.02 M-USDT）将立即支付。",
         disclaimer: "法律声明",
         disclaimerText: "数字资产具有高度波动性。请仅使用您可以承受损失的资金。",
-        latestResult: "最新开奖结果", settledMsg: "第0期彩票已成功结算",
+        latestResult: "最新开奖结果", settledMsg: "开奖已成功结算",
         verifyingOnchain: "验证链上数据...", revealSuccess: "结算完成"
       }
     };
@@ -210,7 +210,7 @@ function App() {
       try {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         setAccount(accounts[0]);
-        setStats(s => ({ ...s, activePlayers: 1 }));
+        setStats(s => ({ ...s, activePlayers: s.activePlayers + 1 }));
       } catch (e) {
         console.error("Connection failed", e);
       }
@@ -270,7 +270,7 @@ function App() {
               {t.howItWorks}
             </button>
             <button onClick={() => setLang(lang === 'en' ? 'zh' : 'en')} className="px-3 py-2 border border-[#7FE6C3] rounded-xl text-[11px] font-black">{lang === 'en' ? '中文' : 'EN'}</button>
-            <button onClick={connectWallet} className="bg-[#063A30] text-white px-6 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
+            <button onClick={connectWallet} className="bg-[#063A30] text-white px-6 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all active:scale-95">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5z"></path><path d="M16 12h.01"></path></svg>
               {account ? `${account.slice(0, 6)}...${account.slice(-4)}` : t.connect}
             </button>
@@ -278,18 +278,10 @@ function App() {
         </div>
       </header>
 
-      {/* BANNER */}
-      <div className="bg-[#E9FFF6] py-2 border-b border-[#7FE6C3]/30">
-        <div className="max-w-7xl mx-auto px-8 text-[10px] font-black uppercase tracking-widest text-[#0D6B58]/40">
-          LIVE ONCHAIN JACKPOT • POWERED BY MERLIN CHAIN • VERIFIABLE ASSETS
-        </div>
-      </div>
-
       <main className="max-w-7xl mx-auto px-8 mt-12">
         {/* HERO SECTION */}
         <section className="bg-white rounded-[3rem] border border-gray-100 p-12 shadow-2xl relative overflow-hidden flex flex-col lg:flex-row gap-12 items-center">
           <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none scale-150 rotate-12"><Logo size={300} /></div>
-          
           <div className="flex-1 relative z-10">
             <div className="inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider bg-[#E9FFF6] text-[#0D6B58] border border-[#7FE6C3]">
               <span className="h-1.5 w-1.5 rounded-full bg-current mr-2 animate-pulse" />
@@ -299,11 +291,11 @@ function App() {
             <p className="mt-8 text-lg font-medium text-[#0D6B58] opacity-60 max-w-lg leading-relaxed">{t.heroSubtitle}</p>
             <div className="mt-12 flex gap-16">
               <div>
-                <div className="text-3xl font-black font-display text-[#063A30]">{stats.totalMints}</div>
+                <div className="text-3xl font-black font-display text-[#063A30]">{stats.totalMints.toLocaleString()}</div>
                 <div className="text-[10px] font-black uppercase tracking-widest text-[#0D6B58]/40 mt-1">{t.totalMints}</div>
               </div>
               <div>
-                <div className="text-3xl font-black font-display text-[#063A30]">{stats.activePlayers}</div>
+                <div className="text-3xl font-black font-display text-[#063A30]">{stats.activePlayers.toLocaleString()}</div>
                 <div className="text-[10px] font-black uppercase tracking-widest text-[#0D6B58]/40 mt-1">{t.activePlayers}</div>
               </div>
             </div>
@@ -322,7 +314,6 @@ function App() {
                   <span className="text-[9px] font-black opacity-60 tracking-widest uppercase">LIVE UPDATING</span>
                 </div>
               </div>
-
               <div className="flex flex-col gap-1">
                 <span className="text-[11px] font-black text-emerald-400 uppercase tracking-[0.3em] ml-1">JACKPOT</span>
                 <div className="flex items-baseline gap-3">
@@ -330,12 +321,11 @@ function App() {
                   <span className="text-xl font-black text-emerald-400 uppercase">M-USDT</span>
                 </div>
               </div>
-
               <div className="mt-12 pt-8 border-t border-white/5 flex justify-between items-center">
                 <div className="flex flex-col">
                   <span className="text-[9px] font-black opacity-40 uppercase tracking-widest mb-1">CURRENT LOTTERY</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold tracking-tight">#1</span>
+                    <span className="text-sm font-bold tracking-tight">#124</span>
                     <span className="text-[8px] font-black px-1.5 py-0.5 bg-emerald-400/20 text-emerald-400 rounded uppercase tracking-widest">ACTIVE</span>
                   </div>
                 </div>
@@ -355,7 +345,6 @@ function App() {
             <section className="bg-white rounded-[2.5rem] border border-gray-100 p-10 shadow-xl h-full">
               <h2 className="text-2xl font-bold font-display text-[#063A30]">{t.historyTitle}</h2>
               <p className="mt-2 text-sm font-medium text-[#0D6B58] opacity-40">{t.historySub}</p>
-              
               <div className="mt-12 border-2 border-dashed border-gray-100 rounded-[2rem] p-20 flex flex-col items-center text-center">
                 <span className="text-xs font-black text-gray-200 uppercase tracking-[0.3em] mb-4">{t.historyNoData}</span>
                 <p className="text-[10px] font-bold text-gray-300 max-w-[240px] leading-relaxed tracking-wide uppercase">{t.historyAuto}</p>
@@ -367,35 +356,32 @@ function App() {
           <div className="lg:col-span-5">
             <section className="bg-white rounded-[2.5rem] border border-gray-100 p-10 shadow-xl">
               <h2 className="text-2xl font-bold font-display text-[#063A30]">{t.mintTitle}</h2>
-              
               <div className="mt-8">
                 <label className="text-[10px] font-black uppercase text-[#063A30]/30 tracking-widest mb-4 block">{t.selectSchedule}</label>
-                <div className="flex gap-2">
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                   {lotterySlots.map(ts => (
-                    <button key={ts} onClick={() => setSelectedSlot(ts)} className={`flex-1 p-4 rounded-2xl border-2 transition-all flex flex-col items-center ${selectedSlot === ts ? "bg-[#063A30] text-white border-[#063A30]" : "bg-white border-gray-50 text-[#063A30] hover:border-[#7FE6C3]"}`}>
+                    <button key={ts} onClick={() => setSelectedSlot(ts)} className={`flex-shrink-0 p-4 rounded-2xl border-2 transition-all flex flex-col items-center min-w-[120px] ${selectedSlot === ts ? "bg-[#063A30] text-white border-[#063A30] shadow-lg" : "bg-white border-gray-50 text-[#063A30] hover:border-[#7FE6C3]"}`}>
                       <span className="text-[9px] font-black uppercase opacity-60 tracking-widest mb-1">{new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                       <span className="text-xs font-bold">{pad2(new Date(ts).getUTCHours())}:00 UTC</span>
                     </button>
                   ))}
                 </div>
               </div>
-
               <div className="mt-8">
                 <label className="text-[10px] font-black uppercase text-[#063A30]/30 tracking-widest mb-4 block">{t.batchMint}</label>
                 <div className="grid grid-cols-3 gap-3">
                   {[1, 5, 10].map(q => (
-                    <button key={q} onClick={() => setMintQuantity(q)} className={`py-4 rounded-xl border-2 font-black transition-all ${mintQuantity === q ? "bg-[#063A30] text-white border-[#063A30]" : "bg-[#F9FAFB] border-gray-50 text-[#063A30] hover:border-[#7FE6C3]"}`}>
+                    <button key={q} onClick={() => setMintQuantity(q)} className={`py-4 rounded-xl border-2 font-black transition-all active:scale-95 ${mintQuantity === q ? "bg-[#063A30] text-white border-[#063A30] shadow-md" : "bg-[#F9FAFB] border-gray-50 text-[#063A30] hover:border-[#7FE6C3]"}`}>
                       {q}x
                     </button>
                   ))}
                 </div>
               </div>
-
               <div className="mt-8">
                 <label className="text-[10px] font-black uppercase text-[#063A30]/30 tracking-widest mb-4 block">{t.select4}</label>
                 <div className="grid grid-cols-3 gap-3">
                   {[1,2,3,4,5,6,7,8,9].map(n => (
-                    <button key={n} onClick={() => toggleNumber(n)} className={`h-16 rounded-2xl flex items-center justify-center text-xl font-black transition-all border-2 ${selectedNumbers.includes(n) ? "bg-[#063A30] text-white border-[#063A30] shadow-lg" : "bg-white border-gray-50 text-[#063A30] hover:border-[#7FE6C3]"}`}>
+                    <button key={n} onClick={() => toggleNumber(n)} className={`h-16 rounded-2xl flex items-center justify-center text-xl font-black transition-all border-2 active:scale-95 ${selectedNumbers.includes(n) ? "bg-[#063A30] text-white border-[#063A30] shadow-lg" : "bg-white border-gray-50 text-[#063A30] hover:border-[#7FE6C3]"}`}>
                       {n}
                     </button>
                   ))}
@@ -404,7 +390,6 @@ function App() {
                   <button onClick={handleShuffle} className="w-full py-3 px-4 border-2 border-gray-50 rounded-xl font-black text-[10px] uppercase text-[#063A30]/60 hover:bg-gray-50 transition-all">{t.shuffle}</button>
                 </div>
               </div>
-
               <div className="mt-10">
                 <button onClick={handleMint} disabled={selectedNumbers.length < 4 || txStatus === 'mining'} className="w-full bg-[#063A30] text-white rounded-2xl py-4 font-bold text-sm transition-all hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 shadow-xl">
                   {txStatus === 'mining' ? 'MINTING...' : t.purchase}
@@ -417,37 +402,31 @@ function App() {
 
       {/* VIEW RESULTS MODAL */}
       {showResultsModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm transition-all">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
           <div className="absolute inset-0" onClick={() => setShowResultsModal(false)} />
-          <div className="relative z-10 w-full max-w-lg bg-white rounded-[2.5rem] p-10 text-center shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden">
+          <div className="relative z-10 w-full max-w-lg bg-white rounded-[2.5rem] p-10 text-center shadow-2xl animate-in zoom-in-95 duration-300">
              <button onClick={() => setShowResultsModal(false)} className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 transition-all z-20">
                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
              </button>
-             
              <div className="mb-2">
                <p className="text-[10px] font-black text-[#0D6B58]/40 uppercase tracking-[0.2em] mb-1">Verifiable Draw Sequence</p>
                <h2 className="text-3xl font-black font-display text-[#063A30] mb-8">{t.latestResult}</h2>
              </div>
-
              <div className="flex justify-center gap-4 md:gap-6 mb-12 relative h-24">
                 {liveLotteryNumbers.map((n, i) => (
-                  <div 
-                    key={i} 
-                    className={`unveil-ball h-16 w-16 md:h-20 md:w-20 rounded-full border-4 flex items-center justify-center ${n !== null ? 'scale-110 rotate-12 border-emerald-500 bg-emerald-50 shadow-lg' : 'border-dashed border-emerald-100 bg-emerald-50/30'}`}
-                  >
+                  <div key={i} className={`h-16 w-16 md:h-20 md:w-20 rounded-full border-4 flex items-center justify-center transition-all duration-700 transform ${n !== null ? 'scale-110 rotate-12 border-emerald-500 bg-emerald-50 shadow-lg' : 'border-dashed border-emerald-100 bg-emerald-50/30'}`}>
                     <span className={`font-black text-2xl ${n !== null ? 'text-emerald-900 animate-in fade-in zoom-in' : 'text-emerald-200'}`}>
                       {n !== null ? n : '?'}
                     </span>
                   </div>
                 ))}
              </div>
-
              <div className="flex flex-col items-center gap-4">
                {lotteryPhase < 5 ? (
                  <div className="flex flex-col items-center gap-3">
                    <div className="flex items-center gap-3 px-6 py-2 rounded-full bg-emerald-900 text-white text-[11px] font-black uppercase tracking-[0.2em] animate-pulse">
                      <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
-                     REVEALING NUMBERS...
+                     REVEALING...
                    </div>
                    <div className="text-[10px] font-bold text-emerald-800/40 uppercase tracking-[0.1em]">
                      {t.verifyingOnchain}
@@ -455,10 +434,10 @@ function App() {
                  </div>
                ) : (
                  <div className="flex flex-col items-center gap-3 animate-in slide-in-from-bottom-2">
-                   <div className="bg-emerald-50 rounded-2xl px-8 py-3 border border-emerald-100">
+                   <div className="bg-emerald-50 rounded-2xl px-8 py-3 border border-emerald-100 shadow-sm">
                      <p className="text-[11px] font-black text-[#0D6B58] uppercase tracking-[0.15em]">{t.revealSuccess}</p>
                    </div>
-                   <p className="text-[9px] font-medium text-gray-400 uppercase tracking-widest mt-1">Verified via OnChain Entropy Block Hash</p>
+                   <p className="text-[9px] font-medium text-gray-400 uppercase tracking-widest mt-1">Verified via MerlinChain Block Hash</p>
                  </div>
                )}
              </div>
@@ -468,19 +447,18 @@ function App() {
 
       {/* HOW IT WORKS MODAL */}
       {showGuideModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm transition-all">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
           <div className="absolute inset-0" onClick={() => setShowGuideModal(false)} />
           <div className="relative z-10 w-full max-w-4xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
             <div className="p-8 md:p-12 border-b flex items-center justify-between">
               <div>
-                <h2 className="text-3xl font-black font-display text-[#063A30]" style={{ color: COLORS.midnight }}>{t.howItWorks}</h2>
+                <h2 className="text-3xl font-black font-display text-[#063A30]">{t.howItWorks}</h2>
                 <p className="text-sm font-medium opacity-40 uppercase tracking-widest mt-1">Platform Guidelines & Legal</p>
               </div>
               <button onClick={() => setShowGuideModal(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
-            
             <div className="flex-1 overflow-y-auto p-8 md:p-12 scrollbar-hide space-y-12">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <Step num={1} title={t.step1Title} desc={t.step1Desc} />
@@ -488,9 +466,8 @@ function App() {
                 <Step num={3} title={t.step3Title} desc={t.step3Desc} />
                 <Step num={4} title={t.step4Title} desc={t.step4Desc} />
               </div>
-              
               <div className="pt-8 border-t border-emerald-50">
-                <h3 className="text-lg font-black font-display mb-6 uppercase tracking-wider" style={{ color: COLORS.midnight }}>{t.rules}</h3>
+                <h3 className="text-lg font-black font-display mb-6 uppercase tracking-wider text-[#063A30]">{t.rules}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[t.rule1, t.rule2, t.rule3, t.rule4].map((rule, idx) => (
                     <div key={idx} className="flex gap-4 p-4 rounded-2xl bg-emerald-50/40 border border-emerald-100/50 text-sm font-medium text-emerald-900/60 leading-relaxed">
@@ -500,7 +477,6 @@ function App() {
                   ))}
                 </div>
               </div>
-
               <div className="p-8 rounded-3xl bg-red-50 border border-red-100 shadow-sm">
                 <h3 className="text-sm font-black uppercase tracking-[0.2em] text-red-600 mb-4 flex items-center gap-2">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -514,6 +490,18 @@ function App() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function Step({ num, title, desc }: { num: number, title: string, desc: string }) {
+  return (
+    <div className="flex flex-col items-center text-center group">
+      <div className="h-12 w-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-black text-xl mb-4 shadow-sm border border-emerald-200 transition-transform group-hover:scale-110">
+        {num}
+      </div>
+      <h4 className="font-bold mb-2 text-sm text-[#063A30]">{title}</h4>
+      <p className="text-[11px] text-[#0D6B58] opacity-60 leading-relaxed font-medium">{desc}</p>
     </div>
   );
 }
