@@ -4,21 +4,10 @@ import ReactDOM from "react-dom/client";
 // --- CONSTANTS ---
 const COLORS = {
   midnight: "#063A30",
-  midnight2: "#0A4A3D",
   mintBg: "#E9FFF6",
-  mintBg2: "#DFFAEF",
   mintStroke: "#7FE6C3",
   mintText: "#0D6B58",
   cardBorder: "rgba(6, 58, 48, 0.10)",
-  shadow: "0 18px 50px rgba(6,58,48,0.10)",
-};
-
-const LOTTERY_CONFIG = {
-  numberCount: 4,
-  maxNumber: 9,
-  ticketPrice: 1.00,
-  currency: "M-USDT",
-  network: "MerlinChain"
 };
 
 const MERLIN_NETWORK = {
@@ -57,6 +46,17 @@ const Logo: React.FC<{ size?: number }> = ({ size = 52 }) => {
     </svg>
   );
 };
+
+// --- COMPONENTS ---
+const Step: React.FC<{ num: number; title: string; desc: string }> = ({ num, title, desc }) => (
+  <div className="flex flex-col items-center text-center">
+    <div className="h-12 w-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-black text-xl mb-4 shadow-sm border border-emerald-200">
+      {num}
+    </div>
+    <h4 className="font-bold mb-2 text-sm text-[#063A30]">{title}</h4>
+    <p className="text-[11px] text-[#0D6B58] opacity-60 leading-relaxed font-medium">{desc}</p>
+  </div>
+);
 
 // --- UTILS ---
 const pad2 = (n: number) => String(n).padStart(2, "0");
@@ -185,7 +185,7 @@ function App() {
     const finalNumbers = getWinningNumbersForSlot(lastSettledLotteryTime);
     
     for (let i = 1; i <= 4; i++) {
-      await new Promise(r => setTimeout(r, 1200));
+      await new Promise(r => setTimeout(r, 1000));
       setLiveLotteryNumbers(prev => {
         const next = [...prev];
         next[i - 1] = finalNumbers[i - 1];
@@ -281,7 +281,7 @@ function App() {
       {/* BANNER */}
       <div className="bg-[#E9FFF6] py-2 border-b border-[#7FE6C3]/30">
         <div className="max-w-7xl mx-auto px-8 text-[10px] font-black uppercase tracking-widest text-[#0D6B58]/40">
-          NO ENTRIES IN LAST 12 HOURS
+          LIVE ONCHAIN JACKPOT • POWERED BY MERLIN CHAIN • VERIFIABLE ASSETS
         </div>
       </div>
 
@@ -433,7 +433,7 @@ function App() {
                 {liveLotteryNumbers.map((n, i) => (
                   <div 
                     key={i} 
-                    className={`h-16 w-16 md:h-20 md:w-20 rounded-full border-4 flex items-center justify-center transition-all duration-700 transform ${n !== null ? 'scale-110 rotate-12 border-emerald-500 bg-emerald-50 shadow-lg' : 'border-dashed border-emerald-100 bg-emerald-50/30'}`}
+                    className={`unveil-ball h-16 w-16 md:h-20 md:w-20 rounded-full border-4 flex items-center justify-center ${n !== null ? 'scale-110 rotate-12 border-emerald-500 bg-emerald-50 shadow-lg' : 'border-dashed border-emerald-100 bg-emerald-50/30'}`}
                   >
                     <span className={`font-black text-2xl ${n !== null ? 'text-emerald-900 animate-in fade-in zoom-in' : 'text-emerald-200'}`}>
                       {n !== null ? n : '?'}
@@ -514,18 +514,6 @@ function App() {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function Step({ num, title, desc }: { num: number, title: string, desc: string }) {
-  return (
-    <div className="flex flex-col items-center text-center">
-      <div className="h-12 w-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-black text-xl mb-4 shadow-sm border border-emerald-200">
-        {num}
-      </div>
-      <h4 className="font-bold mb-2 text-sm text-[#063A30]">{title}</h4>
-      <p className="text-[11px] text-[#0D6B58] opacity-60 leading-relaxed font-medium">{desc}</p>
     </div>
   );
 }
