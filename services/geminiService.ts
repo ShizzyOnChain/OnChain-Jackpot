@@ -1,17 +1,18 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 
 /**
- * Service to fetch AI-generated lucky numbers.
- * Initializes GoogleGenAI right before use to ensure correct API key access.
+ * Generates lucky lottery numbers using Gemini AI.
+ * Uses gemini-3-flash-preview for quick and cost-effective text generation.
  */
-export async function getLuckyNumbers() {
+export const getLuckyNumbers = async (): Promise<{ numbers: number[]; reason: string }> => {
+  // Initialize the AI client using the provided environment variable
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  
   try {
-    // Always initialize GoogleGenAI inside the function scope
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: "Generate 4 'lucky' numbers between 1 and 9 for an onchain lottery. Provide a short, cryptic reason why these numbers were chosen based on 'onchain cosmic alignment'.",
+      contents: "Suggest 4 unique lucky lottery numbers between 1 and 9. Provide a short, fun reason for the selection.",
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -19,27 +20,40 @@ export async function getLuckyNumbers() {
           properties: {
             numbers: {
               type: Type.ARRAY,
-              items: { type: Type.NUMBER },
-              description: "Array of exactly 4 numbers from 1 to 9",
+              items: {
+                type: Type.INTEGER,
+              },
+              description: "An array containing exactly 4 unique integers between 1 and 9.",
             },
             reason: {
               type: Type.STRING,
-              description: "A short cosmic reason for these numbers",
-            }
+              description: "A fun and engaging reason for picking these numbers.",
+            },
           },
-          required: ["numbers", "reason"]
-        }
-      }
+          required: ["numbers", "reason"],
+        },
+      },
     });
 
-    // Directly access .text property from GenerateContentResponse
-    return JSON.parse(response.text || "{}");
-  } catch (error) {
-    console.error("Gemini Error:", error);
-    // Fallback numbers in case of API failure
+    // Directly access the text property as per @google/genai guidelines
+    const jsonStr = response.text;
+    if (!jsonStr) {
+      throw new Error("No text returned from Gemini API");
+    }
+
+    const data = JSON.parse(jsonStr.trim());
+    
+    // Validate and return data in the format expected by App.tsx
     return {
-      numbers: [1, 3, 7, 9],
-      reason: "The stars are currently obscured, but these constants resonate with the chain."
+      numbers: Array.isArray(data.numbers) ? data.numbers.slice(0, 4).map(Number) : [1, 2, 3, 4],
+      reason: typeof data.reason === "string" ? data.reason : "The numbers were aligned by the stars!"
+    };
+  } catch (error) {
+    console.error("Gemini Service Error:", error);
+    // Graceful fallback in case of API failure or quota limits
+    return {
+      numbers: [7, 8, 9, 1],
+      reason: "The universe is currently realigning; these numbers felt lucky today!"
     };
   }
-}
+};

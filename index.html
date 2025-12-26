@@ -4,30 +4,55 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>OnChain Daily Jackpot | MerlinChain</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CDN removed per security constraints -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <style>
+      /* Base styles to replace common Tailwind utilities and ensure layout works without CDN */
+      :root {
+        --midnight: #063A30;
+        --emerald-50: #ecfdf5;
+        --emerald-100: #d1fae5;
+        --emerald-500: #10b981;
+        --emerald-600: #059669;
+        --emerald-900: #064e3b;
+      }
       body {
         font-family: 'Inter', sans-serif;
         background-color: #E9FFF6;
         margin: 0;
+        color: var(--midnight);
         overflow-x: hidden;
       }
-      .font-display {
-        font-family: 'Space Grotesk', sans-serif;
+      .font-display { font-family: 'Space Grotesk', sans-serif; }
+      #root { min-height: 100vh; }
+      
+      /* Marquee Animation */
+      @keyframes marquee {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
       }
-      #root {
-        min-height: 100vh;
+      .animate-marquee {
+        display: flex;
+        width: max-content;
+        animation: marquee 30s linear infinite;
       }
-      .scrollbar-hide::-webkit-scrollbar {
-        display: none;
-      }
-      .scrollbar-hide {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-      }
+      
+      /* Custom Scrollbar Hide */
+      .scrollbar-hide::-webkit-scrollbar { display: none; }
+      .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+      /* Transitions */
+      .transition-all { transition: all 0.3s ease; }
+      
+      /* Tailwind-like utilities for local processing fallback */
+      .flex { display: flex; }
+      .flex-col { flex-direction: column; }
+      .items-center { align-items: center; }
+      .justify-between { justify-content: space-between; }
+      .rounded-2xl { border-radius: 1rem; }
+      .shadow-xl { box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); }
     </style>
     <script type="importmap">
 {
@@ -44,6 +69,7 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- In Vite environment, this remains as is; Vite handles the transformation during build -->
     <script type="module" src="./index.tsx"></script>
   </body>
 </html>
