@@ -418,10 +418,9 @@ export default function App() {
 
   const truncatedAddress = account ? `${account.slice(0, 6)}...${account.slice(-4)}` : null;
 
-  // RESET FOR MAINNET: Only show actual results if needed, or start empty.
-  // We'll leave the code structure but start with an empty array if deployment is truly fresh.
+  // RESET FOR MAINNET: Start with an empty history array for fresh start
   const historicalLotteries = useMemo<HistoricalLottery[]>(() => {
-    return []; // Empty for fresh mainnet start
+    return [];
   }, [lastSettledLotteryTime]);
 
   const nextLotteryTime = lotterySlots[0] || Date.now();
