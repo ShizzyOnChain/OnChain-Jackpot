@@ -245,6 +245,7 @@ const translations = {
     gasPrompt: "您的号码将永久存储在链上",
     footer: "链上彩票 • 由 MerlinChain 提供支持 • 可验证资产",
     howItWorks: "运作方式",
+    zh_howItWorksSub: "平台指南与法律声明",
     step1Title: "连接与切换",
     step1Desc: "连接您的钱包并切换到 MerlinChain 主网。",
     step2Title: "选择号码",
@@ -1016,8 +1017,49 @@ export default function App() {
             <div className="grid grid-cols-2 gap-3 mb-8"><button onClick={handleRandomize} className="py-3 px-4 bg-emerald-50 text-emerald-800 rounded-xl font-bold text-xs uppercase tracking-wider border border-emerald-100">{t.shuffle}</button><button onClick={handleAiLucky} disabled={aiLoading} className="py-3 px-4 bg-indigo-50 text-indigo-800 rounded-xl font-bold text-xs uppercase tracking-wider border border-indigo-100 flex items-center justify-center gap-2">{aiLoading ? <div className="animate-spin h-3 w-3 border-2 border-indigo-800 border-t-transparent rounded-full" /> : <ICONS.Sparkles />}{t.aiLucky}</button></div>
             <div className="bg-emerald-50 rounded-[2rem] p-8 border border-emerald-100 shadow-inner">
               <div className="flex justify-between items-center mb-6"><span className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em]">{t.gasCost}</span><span className="text-xl font-black text-emerald-900">{(1.0 * mintQuantity).toFixed(2)} M-USDT</span></div>
-              {txStatus !== 'idle' && (<div className={`mb-6 p-4 rounded-2xl border text-xs font-bold animate-in fade-in slide-in-from-bottom-2 ${txStatus === 'awaiting' ? 'bg-amber-50 border-amber-100 text-amber-700' : txStatus === 'mining' ? 'bg-blue-50 border-blue-100 text-blue-700' : txStatus === 'success' ? 'bg-emerald-100 border-emerald-200 text-emerald-800' : 'bg-red-50 border-red-100 text-red-700'}`}><div className="flex items-center gap-3">{(txStatus === 'awaiting' || txStatus === 'mining') && <div className="animate-spin h-3 w-3 border-2 border-current border-t-transparent rounded-full" />}{txStatus === 'success' && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}{txStatus === 'error' && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><span>{txStatus === 'awaiting' ? t.metamaskPrompt : txStatus === 'mining' ? t.processing : txStatus === 'success' ? t.successMsg : t.errorMsg}</span></div></div>)}
-              <PrimaryButton onClick={purchaseTicket} loading={txStatus === 'mining' || txStatus === 'awaiting'} variant={!account ? 'default' : (!isCorrectChain ? 'warning' : 'default')} disabled={selectedNumbers.length !== LOTTERY_CONFIG.numberCount || txStatus === 'mining' || txStatus === 'awaiting'}>{!account ? t.connectToBuy : (!isCorrectChain ? t.switch : (txStatus === 'awaiting' ? t.awaiting : `${t.buyTicket} (${mintQuantity}x)`))}</PrimaryButton>
+              
+              {/* Refactored status display with explicit casting to bypass incorrect TypeScript narrowing in nested JSX expressions */}
+              {txStatus !== 'idle' && (
+                <div className={`mb-6 p-4 rounded-2xl border text-xs font-bold animate-in fade-in slide-in-from-bottom-2 ${
+                  txStatus === 'awaiting' ? 'bg-amber-50 border-amber-100 text-amber-700' : 
+                  txStatus === 'mining' ? 'bg-blue-50 border-blue-100 text-blue-700' : 
+                  txStatus === 'success' ? 'bg-emerald-100 border-emerald-200 text-emerald-800' : 
+                  'bg-red-50 border-red-100 text-red-700'
+                }`}>
+                  <div className="flex items-center gap-3">
+                    {((txStatus as string) === 'awaiting' || (txStatus as string) === 'mining') && (
+                      <div className="animate-spin h-3 w-3 border-2 border-current border-t-transparent rounded-full" />
+                    )}
+                    {(txStatus as string) === 'success' && (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    )}
+                    {(txStatus as string) === 'error' && (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                      </svg>
+                    )}
+                    <span>
+                      {(txStatus as string) === 'awaiting' ? t.metamaskPrompt : 
+                       (txStatus as string) === 'mining' ? t.processing : 
+                       (txStatus as string) === 'success' ? t.successMsg : 
+                       t.errorMsg}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Added type assertion in button text to prevent narrowing errors when account or chain is incorrect */}
+              <PrimaryButton 
+                onClick={purchaseTicket} 
+                loading={txStatus === 'mining' || txStatus === 'awaiting'} 
+                variant={!account ? 'default' : (!isCorrectChain ? 'warning' : 'default')} 
+                disabled={selectedNumbers.length !== LOTTERY_CONFIG.numberCount || txStatus === 'mining' || txStatus === 'awaiting'}
+              >
+                {!account ? t.connectToBuy : (!isCorrectChain ? t.switch : ((txStatus as string) === 'awaiting' ? t.awaiting : `${t.buyTicket} (${mintQuantity}x)`))}
+              </PrimaryButton>
+              
               {!isCorrectChain && account && (<p className="mt-4 text-[10px] text-center text-red-700 font-bold uppercase tracking-widest animate-pulse">{t.wrongNetwork}: {t.switch}</p>)}
               <p className="mt-4 text-[10px] text-center text-emerald-900/40 font-bold uppercase tracking-widest">{t.gasPrompt}</p>
             </div>
