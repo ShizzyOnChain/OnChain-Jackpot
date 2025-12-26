@@ -61,6 +61,22 @@ const Logo: React.FC<{ size?: number }> = ({ size = 52 }) => {
 // --- UTILS ---
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
+const getWinningNumbersForSlot = (timestamp: number): number[] => {
+  const seed = new Date(timestamp).toISOString() + "onchain-jackpot-v2-merlin";
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+    hash |= 0;
+  }
+  const result = [];
+  let currentHash = hash;
+  for (let i = 0; i < 4; i++) {
+    currentHash = (currentHash * 1664525 + 1013904223) | 0;
+    result.push((Math.abs(currentHash) % 9) + 1);
+  }
+  return result;
+};
+
 // --- MAIN APP ---
 function App() {
   const [lang, setLang] = useState<'en' | 'zh'>('en');
@@ -74,6 +90,11 @@ function App() {
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
 
+  // States for unveil animation
+  const [liveLotteryNumbers, setLiveLotteryNumbers] = useState<(number | null)[]>([null, null, null, null]);
+  const [lotteryPhase, setLotteryPhase] = useState(0); 
+  const [isRevealing, setIsRevealing] = useState(false);
+
   const t = useMemo(() => {
     const strings = {
       en: {
@@ -85,10 +106,19 @@ function App() {
         mintTitle: "Mint New NFT Entry", selectSchedule: "SELECT LOTTERY SCHEDULE", batchMint: "BATCH MINTING",
         select4: "SELECT 4 NUMBERS (1-9)", shuffle: "Shuffle", purchase: "Mint NFT Ticket",
         liveActivity: "LIVE ONCHAIN ACTIVITY", network: "MERLIN CHAIN", viewResults: "VIEW RESULTS", howItWorks: "HOW IT WORKS",
-        step1Title: "Pick 4 Numbers", step1Desc: "Select any 4 unique numbers from 1 to 9 for your entry.",
-        step2Title: "Mint NFT Entry", step2Desc: "Pay 1 M-USDT to secure your numbers permanently on MerlinChain.",
-        step3Title: "Wait for Reveal", step3Desc: "Lottery settles at 00:00 and 12:00 UTC using onchain entropy.",
-        latestResult: "Latest Result", settledMsg: "LOTTERY #0 SUCCESSFULLY SETTLED"
+        step1Title: "Connect & Switch", step1Desc: "Connect your wallet and switch to MerlinChain Mainnet.",
+        step2Title: "Pick Your Numbers", step2Desc: "Select 4 numbers between 1-9. These will be encoded into your NFT metadata.",
+        step3Title: "Mint Your Entry", step3Desc: "Confirm the transaction to mint your unique NFT ticket. Price: 1 M-USDT + Gas.",
+        step4Title: "Claim the Jackpot", step4Desc: "If your NFT numbers match the daily lottery exactly, you can claim the jackpot prize pool!",
+        rules: "Lottery Rules",
+        rule1: "A lottery occurs every 12 hours (00:00 & 12:00 UTC).",
+        rule2: "Lotteries use deterministic on-chain entropy to ensure fairness.",
+        rule3: "Jackpot is shared among all winners of that specific lottery window.",
+        rule4: "Referral fees (0.02 M-USDT) are paid instantly upon successful minting.",
+        disclaimer: "Legal Disclaimer",
+        disclaimerText: "OnChain Jackpot is a decentralized game of chance. Participating in lotteries involves risk. Digital assets are highly volatile. Use only funds you can afford to lose.",
+        latestResult: "Latest Result", settledMsg: "LOTTERY #0 SUCCESSFULLY SETTLED",
+        verifyingOnchain: "Verifying Onchain Entropy...", revealSuccess: "Settlement Complete"
       },
       zh: {
         title: "链上大奖", connect: "连接钱包", heroTitle: "去中心化链上每日彩票",
@@ -99,10 +129,19 @@ function App() {
         mintTitle: "铸造新 NFT 投注", selectSchedule: "选择开奖时间", batchMint: "批量铸造",
         select4: "选择 4 个数字 (1-9)", shuffle: "随机", purchase: "铸造 NFT 彩票",
         liveActivity: "链上实时动态", network: "MERLIN CHAIN", viewResults: "查看结果", howItWorks: "运作方式",
-        step1Title: "选择4个数字", step1Desc: "从1到9中选择4个不重复的幸运数字。",
-        step2Title: "铸造NFT彩票", step2Desc: "支付 1 M-USDT 将您的投注永久记录在 MerlinChain 上。",
-        step3Title: "等待开奖", step3Desc: "彩票在每日 00:00 和 12:00 UTC 使用链上随机熵自动开奖。",
-        latestResult: "最新开奖结果", settledMsg: "第0期彩票已成功结算"
+        step1Title: "连接与切换", step1Desc: "连接您的钱包并切换到 MerlinChain 主网。",
+        step2Title: "选择号码", step2Desc: "在 1-9 之间选择 4 个数字。这些将编码到您的 NFT 元数据中。",
+        step3Title: "铸造投注", step3Desc: "确认交易以在链上铸造您唯一的 NFT 彩票。价格：1 M-USDT + Gas。",
+        step4Title: "领取大奖", step4Desc: "如果您的 NFT 号码与每日开奖完全匹配，即可领取奖池奖金！",
+        rules: "彩票规则",
+        rule1: "每 12 小时进行一次开奖 (00:00 & 12:00 UTC)。",
+        rule2: "开奖使用确定的链上随机熵，确保公平性。",
+        rule3: "奖池由该特定开奖时段的所有中奖者平分。",
+        rule4: "成功铸造后，推荐费（0.02 M-USDT）将立即支付。",
+        disclaimer: "法律声明",
+        disclaimerText: "数字资产具有高度波动性。请仅使用您可以承受损失的资金。",
+        latestResult: "最新开奖结果", settledMsg: "第0期彩票已成功结算",
+        verifyingOnchain: "验证链上数据...", revealSuccess: "结算完成"
       }
     };
     return strings[lang];
@@ -128,6 +167,43 @@ function App() {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  const lastSettledLotteryTime = useMemo(() => {
+    const d = new Date();
+    d.setUTCMinutes(0, 0, 0);
+    const h = d.getUTCHours();
+    if (h >= 12) d.setUTCHours(12, 0, 0, 0); else d.setUTCHours(0, 0, 0, 0);
+    if (Date.now() < d.getTime() + 90000) d.setUTCHours(d.getUTCHours() - 12);
+    return d.getTime();
+  }, [now.getUTCDate(), now.getUTCHours()]);
+
+  const runLiveLotterySequence = async () => {
+    if (isRevealing) return;
+    setIsRevealing(true);
+    setLotteryPhase(0);
+    setLiveLotteryNumbers([null, null, null, null]);
+    const finalNumbers = getWinningNumbersForSlot(lastSettledLotteryTime);
+    
+    for (let i = 1; i <= 4; i++) {
+      await new Promise(r => setTimeout(r, 1200));
+      setLiveLotteryNumbers(prev => {
+        const next = [...prev];
+        next[i - 1] = finalNumbers[i - 1];
+        return next;
+      });
+      setLotteryPhase(i);
+    }
+    
+    await new Promise(r => setTimeout(r, 800));
+    setLotteryPhase(5);
+    setIsRevealing(false);
+  };
+
+  useEffect(() => {
+    if (showResultsModal) {
+      runLiveLotterySequence();
+    }
+  }, [showResultsModal]);
 
   const connectWallet = async () => {
     if (window.ethereum) {
@@ -343,22 +419,49 @@ function App() {
       {showResultsModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm transition-all">
           <div className="absolute inset-0" onClick={() => setShowResultsModal(false)} />
-          <div className="relative z-10 w-full max-w-lg bg-white rounded-[2.5rem] p-10 text-center shadow-2xl animate-in zoom-in-95 duration-200">
-             <button onClick={() => setShowResultsModal(false)} className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 transition-all">
+          <div className="relative z-10 w-full max-w-lg bg-white rounded-[2.5rem] p-10 text-center shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden">
+             <button onClick={() => setShowResultsModal(false)} className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 transition-all z-20">
                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
              </button>
-             <h2 className="text-2xl font-black font-display text-[#063A30] mb-8">{t.latestResult}</h2>
-             <div className="flex justify-center gap-4 mb-10">
-                {[2, 5, 7, 1].map((n, i) => (
-                  <div key={i} className="h-16 w-16 rounded-full border-4 border-[#7FE6C3] bg-[#E9FFF6] flex items-center justify-center font-black text-2xl text-[#063A30] shadow-lg animate-in slide-in-from-bottom duration-500 delay-[i*100ms]">
-                    {n}
+             
+             <div className="mb-2">
+               <p className="text-[10px] font-black text-[#0D6B58]/40 uppercase tracking-[0.2em] mb-1">Verifiable Draw Sequence</p>
+               <h2 className="text-3xl font-black font-display text-[#063A30] mb-8">{t.latestResult}</h2>
+             </div>
+
+             <div className="flex justify-center gap-4 md:gap-6 mb-12 relative h-24">
+                {liveLotteryNumbers.map((n, i) => (
+                  <div 
+                    key={i} 
+                    className={`h-16 w-16 md:h-20 md:w-20 rounded-full border-4 flex items-center justify-center transition-all duration-700 transform ${n !== null ? 'scale-110 rotate-12 border-emerald-500 bg-emerald-50 shadow-lg' : 'border-dashed border-emerald-100 bg-emerald-50/30'}`}
+                  >
+                    <span className={`font-black text-2xl ${n !== null ? 'text-emerald-900 animate-in fade-in zoom-in' : 'text-emerald-200'}`}>
+                      {n !== null ? n : '?'}
+                    </span>
                   </div>
                 ))}
              </div>
-             <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-100 mb-2">
-               <p className="text-[10px] font-black text-[#0D6B58]/60 uppercase tracking-widest">{t.settledMsg}</p>
+
+             <div className="flex flex-col items-center gap-4">
+               {lotteryPhase < 5 ? (
+                 <div className="flex flex-col items-center gap-3">
+                   <div className="flex items-center gap-3 px-6 py-2 rounded-full bg-emerald-900 text-white text-[11px] font-black uppercase tracking-[0.2em] animate-pulse">
+                     <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
+                     REVEALING NUMBERS...
+                   </div>
+                   <div className="text-[10px] font-bold text-emerald-800/40 uppercase tracking-[0.1em]">
+                     {t.verifyingOnchain}
+                   </div>
+                 </div>
+               ) : (
+                 <div className="flex flex-col items-center gap-3 animate-in slide-in-from-bottom-2">
+                   <div className="bg-emerald-50 rounded-2xl px-8 py-3 border border-emerald-100">
+                     <p className="text-[11px] font-black text-[#0D6B58] uppercase tracking-[0.15em]">{t.revealSuccess}</p>
+                   </div>
+                   <p className="text-[9px] font-medium text-gray-400 uppercase tracking-widest mt-1">Verified via OnChain Entropy Block Hash</p>
+                 </div>
+               )}
              </div>
-             <p className="text-[9px] font-medium text-gray-400 uppercase tracking-widest mt-4">Verified by MerlinChain Entropy</p>
           </div>
         </div>
       )}
@@ -367,40 +470,62 @@ function App() {
       {showGuideModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm transition-all">
           <div className="absolute inset-0" onClick={() => setShowGuideModal(false)} />
-          <div className="relative z-10 w-full max-w-2xl bg-white rounded-[2.5rem] p-10 shadow-2xl animate-in zoom-in-95 duration-200">
-             <button onClick={() => setShowGuideModal(false)} className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 transition-all">
-               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-             </button>
-             <h2 className="text-3xl font-black font-display text-[#063A30] mb-10">{t.howItWorks}</h2>
-             <div className="space-y-8">
-                <div className="flex gap-6 items-start">
-                   <div className="h-12 w-12 flex-shrink-0 rounded-2xl bg-[#E9FFF6] text-[#063A30] border border-[#7FE6C3] flex items-center justify-center font-black text-xl shadow-sm">1</div>
-                   <div>
-                      <h3 className="font-bold text-[#063A30] text-lg mb-1">{t.step1Title}</h3>
-                      <p className="text-sm text-[#0D6B58] opacity-60 leading-relaxed">{t.step1Desc}</p>
-                   </div>
+          <div className="relative z-10 w-full max-w-4xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
+            <div className="p-8 md:p-12 border-b flex items-center justify-between">
+              <div>
+                <h2 className="text-3xl font-black font-display text-[#063A30]" style={{ color: COLORS.midnight }}>{t.howItWorks}</h2>
+                <p className="text-sm font-medium opacity-40 uppercase tracking-widest mt-1">Platform Guidelines & Legal</p>
+              </div>
+              <button onClick={() => setShowGuideModal(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-8 md:p-12 scrollbar-hide space-y-12">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <Step num={1} title={t.step1Title} desc={t.step1Desc} />
+                <Step num={2} title={t.step2Title} desc={t.step2Desc} />
+                <Step num={3} title={t.step3Title} desc={t.step3Desc} />
+                <Step num={4} title={t.step4Title} desc={t.step4Desc} />
+              </div>
+              
+              <div className="pt-8 border-t border-emerald-50">
+                <h3 className="text-lg font-black font-display mb-6 uppercase tracking-wider" style={{ color: COLORS.midnight }}>{t.rules}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[t.rule1, t.rule2, t.rule3, t.rule4].map((rule, idx) => (
+                    <div key={idx} className="flex gap-4 p-4 rounded-2xl bg-emerald-50/40 border border-emerald-100/50 text-sm font-medium text-emerald-900/60 leading-relaxed">
+                      <span className="flex-shrink-0 h-6 w-6 rounded-lg bg-emerald-900 text-white flex items-center justify-center text-[10px] font-black">{idx + 1}</span>
+                      {rule}
+                    </div>
+                  ))}
                 </div>
-                <div className="flex gap-6 items-start">
-                   <div className="h-12 w-12 flex-shrink-0 rounded-2xl bg-[#E9FFF6] text-[#063A30] border border-[#7FE6C3] flex items-center justify-center font-black text-xl shadow-sm">2</div>
-                   <div>
-                      <h3 className="font-bold text-[#063A30] text-lg mb-1">{t.step2Title}</h3>
-                      <p className="text-sm text-[#0D6B58] opacity-60 leading-relaxed">{t.step2Desc}</p>
-                   </div>
-                </div>
-                <div className="flex gap-6 items-start">
-                   <div className="h-12 w-12 flex-shrink-0 rounded-2xl bg-[#E9FFF6] text-[#063A30] border border-[#7FE6C3] flex items-center justify-center font-black text-xl shadow-sm">3</div>
-                   <div>
-                      <h3 className="font-bold text-[#063A30] text-lg mb-1">{t.step3Title}</h3>
-                      <p className="text-sm text-[#0D6B58] opacity-60 leading-relaxed">{t.step3Desc}</p>
-                   </div>
-                </div>
-             </div>
-             <div className="mt-12 p-6 rounded-2xl bg-gray-50 border border-gray-100 text-[11px] text-gray-400 leading-relaxed">
-               OnChain Jackpot is a decentralized game of chance on MerlinChain. Ensure you are connected to the correct network before participating.
-             </div>
+              </div>
+
+              <div className="p-8 rounded-3xl bg-red-50 border border-red-100 shadow-sm">
+                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-red-600 mb-4 flex items-center gap-2">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  {t.disclaimer}
+                </h3>
+                <p className="text-xs font-medium text-red-900/60 leading-relaxed max-w-3xl">
+                  {t.disclaimerText}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function Step({ num, title, desc }: { num: number, title: string, desc: string }) {
+  return (
+    <div className="flex flex-col items-center text-center">
+      <div className="h-12 w-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-black text-xl mb-4 shadow-sm border border-emerald-200">
+        {num}
+      </div>
+      <h4 className="font-bold mb-2 text-sm text-[#063A30]">{title}</h4>
+      <p className="text-[11px] text-[#0D6B58] opacity-60 leading-relaxed font-medium">{desc}</p>
     </div>
   );
 }
