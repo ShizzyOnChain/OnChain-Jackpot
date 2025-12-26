@@ -1,10 +1,14 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
+/**
+ * Service to fetch AI-generated lucky numbers.
+ * Initializes GoogleGenAI right before use to ensure correct API key access.
+ */
 export async function getLuckyNumbers() {
   try {
+    // Always initialize GoogleGenAI inside the function scope
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: "Generate 4 'lucky' numbers between 1 and 9 for an onchain lottery. Provide a short, cryptic reason why these numbers were chosen based on 'onchain cosmic alignment'.",
@@ -28,10 +32,11 @@ export async function getLuckyNumbers() {
       }
     });
 
-    return JSON.parse(response.text);
+    // Directly access .text property from GenerateContentResponse
+    return JSON.parse(response.text || "{}");
   } catch (error) {
     console.error("Gemini Error:", error);
-    // Fallback numbers
+    // Fallback numbers in case of API failure
     return {
       numbers: [1, 3, 7, 9],
       reason: "The stars are currently obscured, but these constants resonate with the chain."

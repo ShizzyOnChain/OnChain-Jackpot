@@ -18,8 +18,13 @@ const TICKET_PRICE = 1.0;
 const DEV_FEE_PER_TICKET = 0.1;
 const REF_FEE_PER_TICKET = 0.02;
 
+/**
+ * Deterministically generates numbers for a given slot.
+ * Used for both historical display and winner verification.
+ */
 const getWinningNumbersForSlot = (timestamp: number): number[] => {
   const seed = new Date(timestamp).toISOString() + "onchain-jackpot-v2-merlin";
+  // Simple deterministic hash for UI consistency
   let hash = 0;
   for (let i = 0; i < seed.length; i++) {
     hash = ((hash << 5) - hash) + seed.charCodeAt(i);
@@ -32,6 +37,19 @@ const getWinningNumbersForSlot = (timestamp: number): number[] => {
     result.push((Math.abs(currentHash) % 9) + 1);
   }
   return result;
+};
+
+const generateDeterministicNumbers = async (seedString: string): Promise<number[]> => {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(seedString + "onchain-jackpot-entropy-v2-merlin");
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return [
+    (hashArray[0] % 9) + 1,
+    (hashArray[1] % 9) + 1,
+    (hashArray[2] % 9) + 1,
+    (hashArray[3] % 9) + 1
+  ];
 };
 
 const Pill: React.FC<{ children: React.ReactNode; variant?: 'default' | 'gold' | 'mint' | 'danger' | 'info' | 'warning' }> = ({ children, variant = 'default' }) => {
@@ -245,13 +263,12 @@ const translations = {
     gasPrompt: "您的号码将永久存储在链上",
     footer: "链上彩票 • 由 MerlinChain 提供支持 • 可验证资产",
     howItWorks: "运作方式",
-    zh_howItWorksSub: "平台指南与法律声明",
     step1Title: "连接与切换",
     step1Desc: "连接您的钱包并切换到 MerlinChain 主网。",
     step2Title: "选择号码",
-    step2Desc: "在 1-9 之间选择 4 个数字. 这些将编码到您的 NFT 元数据中。",
+    step2Desc: "在 1-9 之间选择 4 个数字。这些将编码到您的 NFT 元数据中。",
     step3Title: "铸造投注",
-    step3Desc: "确认交易以在链上铸造您唯一的 NFT 彩票. 价格：1 M-USDT + 网络 Gas。",
+    step3Desc: "确认交易以在链上铸造您唯一的 NFT 彩票。价格：1 M-USDT + 网络 Gas。",
     step4Title: "领取大奖",
     step4Desc: "如果您的 NFT 号码与每日开奖完全匹配，即可领取奖池奖金！",
     claimPrize: "领取奖金",
@@ -323,6 +340,7 @@ export default function App() {
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
   const [tickets, setTickets] = useState<(Ticket & { txHash?: string })[]>([]);
   
+  // RESET FOR MAINNET: All stats to 0
   const [jackpot, setJackpot] = useState(0.00); 
   const [stats, setStats] = useState({ totalMints: 0, activePlayers: 0 });
   
@@ -333,6 +351,8 @@ export default function App() {
   const [txStatus, setTxStatus] = useState<'idle' | 'awaiting' | 'mining' | 'success' | 'error'>('idle');
   const [claimStatus, setClaimStatus] = useState<Record<string, 'idle' | 'claiming' | 'success'>>({});
   const [refClaimLoading, setRefClaimLoading] = useState(false);
+  
+  // RESET FOR MAINNET: Referral stats to 0
   const [referralBalance, setReferralBalance] = useState({ total: 0.00, available: 0.00 });
   
   const [account, setAccount] = useState<string | null>(null);
@@ -398,6 +418,7 @@ export default function App() {
 
   const truncatedAddress = account ? `${account.slice(0, 6)}...${account.slice(-4)}` : null;
 
+  // RESET FOR MAINNET: Start with an empty history array for fresh start
   const historicalLotteries = useMemo<HistoricalLottery[]>(() => {
     return [];
   }, [lastSettledLotteryTime]);
@@ -726,6 +747,7 @@ export default function App() {
         </div>
       </header>
 
+      {/* Results Modal */}
       {showResultsModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center px-6 py-12">
           <div className="absolute inset-0 bg-[#063A30]/80 backdrop-blur-md" onClick={() => { setShowResultsModal(false); setIsLiveLottery(false); }} />
@@ -778,6 +800,7 @@ export default function App() {
         </div>
       )}
 
+      {/* Guide Modal */}
       {showGuideModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center px-6 py-12">
           <div className="absolute inset-0 bg-[#063A30]/80 backdrop-blur-md" onClick={() => setShowGuideModal(false)} />
@@ -1017,49 +1040,9 @@ export default function App() {
             <div className="grid grid-cols-2 gap-3 mb-8"><button onClick={handleRandomize} className="py-3 px-4 bg-emerald-50 text-emerald-800 rounded-xl font-bold text-xs uppercase tracking-wider border border-emerald-100">{t.shuffle}</button><button onClick={handleAiLucky} disabled={aiLoading} className="py-3 px-4 bg-indigo-50 text-indigo-800 rounded-xl font-bold text-xs uppercase tracking-wider border border-indigo-100 flex items-center justify-center gap-2">{aiLoading ? <div className="animate-spin h-3 w-3 border-2 border-indigo-800 border-t-transparent rounded-full" /> : <ICONS.Sparkles />}{t.aiLucky}</button></div>
             <div className="bg-emerald-50 rounded-[2rem] p-8 border border-emerald-100 shadow-inner">
               <div className="flex justify-between items-center mb-6"><span className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em]">{t.gasCost}</span><span className="text-xl font-black text-emerald-900">{(1.0 * mintQuantity).toFixed(2)} M-USDT</span></div>
-              
-              {/* Refactored status display with explicit casting to bypass incorrect TypeScript narrowing in nested JSX expressions */}
-              {txStatus !== 'idle' && (
-                <div className={`mb-6 p-4 rounded-2xl border text-xs font-bold animate-in fade-in slide-in-from-bottom-2 ${
-                  txStatus === 'awaiting' ? 'bg-amber-50 border-amber-100 text-amber-700' : 
-                  txStatus === 'mining' ? 'bg-blue-50 border-blue-100 text-blue-700' : 
-                  txStatus === 'success' ? 'bg-emerald-100 border-emerald-200 text-emerald-800' : 
-                  'bg-red-50 border-red-100 text-red-700'
-                }`}>
-                  <div className="flex items-center gap-3">
-                    {((txStatus as string) === 'awaiting' || (txStatus as string) === 'mining') && (
-                      <div className="animate-spin h-3 w-3 border-2 border-current border-t-transparent rounded-full" />
-                    )}
-                    {(txStatus as string) === 'success' && (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12"/>
-                      </svg>
-                    )}
-                    {(txStatus as string) === 'error' && (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
-                      </svg>
-                    )}
-                    <span>
-                      {(txStatus as string) === 'awaiting' ? t.metamaskPrompt : 
-                       (txStatus as string) === 'mining' ? t.processing : 
-                       (txStatus as string) === 'success' ? t.successMsg : 
-                       t.errorMsg}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Added type assertion in button text to prevent narrowing errors when account or chain is incorrect */}
-              <PrimaryButton 
-                onClick={purchaseTicket} 
-                loading={txStatus === 'mining' || txStatus === 'awaiting'} 
-                variant={!account ? 'default' : (!isCorrectChain ? 'warning' : 'default')} 
-                disabled={selectedNumbers.length !== LOTTERY_CONFIG.numberCount || txStatus === 'mining' || txStatus === 'awaiting'}
-              >
-                {!account ? t.connectToBuy : (!isCorrectChain ? t.switch : ((txStatus as string) === 'awaiting' ? t.awaiting : `${t.buyTicket} (${mintQuantity}x)`))}
-              </PrimaryButton>
-              
+              {/* Fix: use explicit string comparisons to prevent TypeScript from incorrectly narrowing the status union within the complex JSX structure */}
+              {txStatus !== 'idle' && (<div className={`mb-6 p-4 rounded-2xl border text-xs font-bold animate-in fade-in slide-in-from-bottom-2 ${String(txStatus) === 'awaiting' ? 'bg-amber-50 border-amber-100 text-amber-700' : String(txStatus) === 'mining' ? 'bg-blue-50 border-blue-100 text-blue-700' : String(txStatus) === 'success' ? 'bg-emerald-100 border-emerald-200 text-emerald-800' : 'bg-red-50 border-red-100 text-red-700'}`}><div className="flex items-center gap-3">{(String(txStatus) === 'awaiting' || String(txStatus) === 'mining') && <div className="animate-spin h-3 w-3 border-2 border-current border-t-transparent rounded-full" />}{String(txStatus) === 'success' && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}{String(txStatus) === 'error' && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>}<span>{String(txStatus) === 'awaiting' ? t.metamaskPrompt : String(txStatus) === 'mining' ? t.processing : String(txStatus) === 'success' ? t.successMsg : t.errorMsg}</span></div></div>)}
+              <PrimaryButton onClick={purchaseTicket} loading={txStatus === 'mining' || txStatus === 'awaiting'} variant={!account ? 'default' : (!isCorrectChain ? 'warning' : 'default')} disabled={selectedNumbers.length !== LOTTERY_CONFIG.numberCount || txStatus === 'mining' || txStatus === 'awaiting'}>{!account ? t.connectToBuy : (!isCorrectChain ? t.switch : (txStatus === 'awaiting' ? t.awaiting : `${t.buyTicket} (${mintQuantity}x)`))}</PrimaryButton>
               {!isCorrectChain && account && (<p className="mt-4 text-[10px] text-center text-red-700 font-bold uppercase tracking-widest animate-pulse">{t.wrongNetwork}: {t.switch}</p>)}
               <p className="mt-4 text-[10px] text-center text-emerald-900/40 font-bold uppercase tracking-widest">{t.gasPrompt}</p>
             </div>
