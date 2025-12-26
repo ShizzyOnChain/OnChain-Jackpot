@@ -1,3 +1,4 @@
+
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import ReactDOM from "react-dom/client";
 
@@ -33,6 +34,7 @@ const Logo: React.FC<{ size?: number }> = ({ size = 52 }) => {
   return (
     <svg width={size} height={size} viewBox="0 0 120 120" fill="none">
       <defs>
+        {/* Fix: Resolved duplicate attribute error by changing second x2 to y2 */}
         <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#f7e1a0" /><stop offset="30%" stopColor="#d4af37" /><stop offset="70%" stopColor="#b8860b" /><stop offset="100%" stopColor="#8b6508" />
         </linearGradient>
@@ -116,8 +118,12 @@ function App() {
   const [account, setAccount] = useState<string | null>(null);
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
   const [mintQuantity, setMintQuantity] = useState(1);
-  const [jackpot, setJackpot] = useState(124.50);
-  const [stats, setStats] = useState({ totalMints: 4520, activePlayers: 1120 });
+  
+  // RESET FOR MAINNET: All live stats set to 0
+  const [jackpot, setJackpot] = useState(0.00);
+  const [stats, setStats] = useState({ totalMints: 0, activePlayers: 0 });
+  const [referralBalance, setReferralBalance] = useState({ total: 0.00, available: 0.00 });
+  
   const [now, setNow] = useState(new Date());
   const [txStatus, setTxStatus] = useState<'idle' | 'awaiting' | 'mining' | 'success' | 'error'>('idle');
   const [showResultsModal, setShowResultsModal] = useState(false);
@@ -137,9 +143,6 @@ function App() {
   const [lotteryPhase, setLotteryPhase] = useState(0); 
   const [isRevealing, setIsRevealing] = useState(false);
 
-  /**
-   * Added 'footer' to translation strings to fix missing property error.
-   */
   const t = useMemo(() => {
     const strings = {
       en: {
@@ -331,23 +334,13 @@ function App() {
         </div>
       </header>
 
-      {/* MARQUEE */}
+      {/* MARQUEE - RESET: Removed hardcoded simulation entries */}
       <div className="bg-[#E9FFF6] py-1.5 border-b border-[#7FE6C3]/20 overflow-hidden h-8 flex items-center">
         <div className="animate-marquee flex whitespace-nowrap gap-12 text-[10px] font-bold uppercase tracking-widest text-emerald-800/40">
-          {[1,2,3,4].map(i => (
-            <React.Fragment key={i}>
-              <div className="flex items-center gap-2">
-                <span className="text-emerald-500">●</span>
-                <span>0X7A2...F9A MINTED JACKPOT #124</span>
-                <span className="bg-white px-1.5 rounded border border-emerald-100 text-emerald-900">4-5-9-1</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-emerald-500">●</span>
-                <span>0XDE4...C21 MINTED JACKPOT #124</span>
-                <span className="bg-white px-1.5 rounded border border-emerald-100 text-emerald-900">1-3-7-8</span>
-              </div>
-            </React.Fragment>
-          ))}
+           <div className="flex items-center gap-2">
+             <span className="text-emerald-500/20">●</span>
+             <span>{t.liveActivity} INITIALIZING...</span>
+           </div>
         </div>
       </div>
 
@@ -373,14 +366,14 @@ function App() {
             <div className="bg-gradient-to-br from-[#063A30] to-[#042B24] rounded-[2.5rem] p-10 text-white shadow-2xl border border-white/5 relative">
               <div className="flex justify-between items-center mb-10">
                 <span className="text-[10px] font-black opacity-40 uppercase tracking-[0.2em]">{t.prizePool}</span>
-                <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /><span className="text-[9px] font-black opacity-60 uppercase">LIVE</span></div>
+                <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /><span className="text-[9px] font-black uppercase tracking-widest opacity-60">LIVE</span></div>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-[11px] font-black text-emerald-400 uppercase tracking-[0.3em] ml-1">JACKPOT</span>
-                <div className="flex items-baseline gap-3"><span className="text-7xl font-black font-display tracking-tighter">{jackpot.toFixed(2)}</span><span className="text-xl font-black text-emerald-400 uppercase">M-USDT</span></div>
+                <div className="flex items-baseline gap-4"><span className="text-7xl font-black font-display tracking-tighter">{jackpot.toFixed(2)}</span><span className="text-xl font-black text-emerald-400 uppercase">M-USDT</span></div>
               </div>
               <div className="mt-12 pt-8 border-t border-white/5 flex justify-between items-center opacity-60">
-                <div className="flex flex-col"><span className="text-[9px] font-black uppercase tracking-widest mb-1">CURRENT LOTTERY</span><div className="text-sm font-bold">#124 ACTIVE</div></div>
+                <div className="flex flex-col"><span className="text-[9px] font-black uppercase tracking-widest mb-1">CURRENT LOTTERY</span><div className="text-sm font-bold">#1 ACTIVE</div></div>
                 <div className="text-right"><span className="text-[9px] font-black uppercase tracking-widest mb-1">NETWORK</span><div className="text-[9px] font-black uppercase">MERLIN CHAIN</div></div>
               </div>
             </div>
