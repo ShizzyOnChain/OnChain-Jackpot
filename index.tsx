@@ -1,3 +1,4 @@
+
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import ReactDOM from "react-dom/client";
 import { MERLIN_NETWORK } from "./constants";
@@ -45,6 +46,7 @@ const Logo: React.FC<{ size?: number; opacity?: number }> = ({ size = 52, opacit
   return (
     <svg width={size} height={size} viewBox="0 0 120 120" fill="none" style={{ opacity }}>
       <defs>
+        {/* Fix: changed duplicate x2 attribute to y2 */}
         <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#f7e1a0" /><stop offset="30%" stopColor="#d4af37" /><stop offset="70%" stopColor="#b8860b" /><stop offset="100%" stopColor="#8b6508" />
         </linearGradient>
@@ -128,6 +130,7 @@ function App() {
   
   const [now, setNow] = useState(new Date());
   const [txStatus, setTxStatus] = useState<'idle' | 'awaiting' | 'mining' | 'success' | 'error'>('idle');
+  const [isConnecting, setIsConnecting] = useState(false);
 
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
@@ -188,14 +191,14 @@ function App() {
       step1Title: "连接并切换", step1Desc: "连接您的钱包并切换到 MerlinChain 测试网。",
       step2Title: "选择号码", step2Desc: "在 1-9 之间选择 4 个数字。这些将编码到您的 NFT 元数据中。",
       step3Title: "铸造投注", step3Desc: "确认交易以在链上铸造您唯一的 NFT 彩票。价格：1 M-USDT + Gas。",
-      step4Title: "领取大奖", step4Desc: "如果您的 NFT 号码与每日开奖完全匹配，即可领取奖池奖金！",
+      step4Title: "Claim the Jackpot", step4Desc: "如果您的 NFT 号码与每日开奖完全匹配，即可领取奖池奖金！",
       rules: "彩票规则", rule1: "每 12 小时进行一次开奖 (00:00 & 12:00 UTC)。",
       rule2: "开奖使用确定的链上随机熵，确保公平性。",
       rule3: "奖池由该特定开奖时段的所有中奖者平分。",
       rule4: "成功铸造后，推荐费 (0.02 M-USDT) 将立即支付。",
       disclaimer: "法律声明", disclaimerText: "OnChain Jackpot 是一款实验性的几率游戏。参与彩票涉及财务风险。",
       available: "可领取金额", claimAll: "领取所有奖励", editProfile: "编辑资料",
-      uploadAvatar: "上传图片", bioLabel: "个人简介", nameLabel: "显示名称"
+      uploadAvatar: "上传图片", bioLabel: "Bio / Motto", nameLabel: "显示名称"
     }
   };
 
@@ -220,12 +223,20 @@ function App() {
     return () => clearInterval(timer);
   }, []);
 
+  // Set up Ethereum listeners
   useEffect(() => {
-    if (window.ethereum) {
-      window.ethereum.request({ method: 'eth_chainId' }).then(setChainId);
-      window.ethereum.on('chainChanged', (cid: string) => setChainId(cid));
-      window.ethereum.on('accountsChanged', (accs: string[]) => setAccount(accs[0] || null));
-    }
+    const checkConn = async () => {
+      if (window.ethereum) {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (accounts.length > 0) setAccount(accounts[0]);
+        const cid = await window.ethereum.request({ method: 'eth_chainId' });
+        setChainId(cid);
+
+        window.ethereum.on('chainChanged', (cid: string) => setChainId(cid));
+        window.ethereum.on('accountsChanged', (accs: string[]) => setAccount(accs[0] || null));
+      }
+    };
+    checkConn();
   }, []);
 
   const isCorrectChain = useMemo(() => {
@@ -295,14 +306,21 @@ function App() {
   const connectWallet = async () => {
     if (window.ethereum) {
       try {
+        setIsConnecting(true);
         const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
         if (accs.length > 0) {
           setAccount(accs[0]);
           const cid = await window.ethereum.request({ method: 'eth_chainId' });
           setChainId(cid);
         }
-      } catch (e) { console.error(e); }
-    } else alert("Install MetaMask");
+      } catch (e) { 
+        console.error("Wallet connection failed", e); 
+      } finally {
+        setIsConnecting(false);
+      }
+    } else {
+      alert("Please install MetaMask to participate in the OnChain Lottery.");
+    }
   };
 
   const switchNetwork = async () => {
@@ -345,7 +363,6 @@ function App() {
     setTimeout(() => setTxStatus('idle'), 3000);
   };
 
-  // --- FIX: Defined the missing saveProfile function to handle persisting profile changes to localStorage and toggling edit mode ---
   const saveProfile = () => {
     if (account) {
       localStorage.setItem(`profile_${account}`, JSON.stringify(profile));
@@ -357,7 +374,7 @@ function App() {
     if (account) {
       const link = `${window.location.origin}${window.location.pathname}?ref=${account}`;
       navigator.clipboard.writeText(link);
-      alert("Link copied!");
+      alert("Referral link copied to clipboard!");
     }
   };
 
@@ -374,7 +391,7 @@ function App() {
 
   const handleClaimAllRewards = async () => {
     if (referralBalance.available <= 0) return;
-    alert("Claiming rewards on MerlinChain...");
+    alert("Claiming rewards on MerlinChain... (Simulated)");
     setReferralBalance(prev => ({ ...prev, available: 0 }));
   };
 
@@ -416,7 +433,15 @@ function App() {
               <img src={profile.avatarUrl} alt="Avatar" className="h-6 w-6 rounded-full object-cover border border-emerald-200" />
               <span className="hidden lg:inline max-w-[80px] truncate">{profile.username}</span>
             </button>
-          ) : <button onClick={connectWallet} className="bg-[#04211C] dark:bg-emerald-500 text-white dark:text-[#04211C] px-6 py-2 rounded-xl text-xs font-bold shadow-md hover:scale-[1.05] transition-all">{t.connect}</button>}
+          ) : (
+            <button 
+              onClick={connectWallet} 
+              disabled={isConnecting}
+              className="bg-[#04211C] dark:bg-emerald-500 text-white dark:text-[#04211C] px-6 py-2 rounded-xl text-xs font-bold shadow-md hover:scale-[1.05] transition-all disabled:opacity-50"
+            >
+              {isConnecting ? "..." : t.connect}
+            </button>
+          )}
         </div>
       </header>
 
@@ -589,7 +614,7 @@ function App() {
                     <h3 className="text-xl font-black font-display mb-6 dark:text-white">{t.referral}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                        <div className="space-y-4">
-                          <label className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 block">{t.referralLink}</label>
+                          <label className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 block">Your Referral Link</label>
                           <div className="flex gap-2">
                              <div className="flex-1 bg-gray-50 dark:bg-emerald-500/5 px-4 py-3 rounded-xl text-xs font-mono dark:text-white truncate border dark:border-emerald-500/10">
                                 {account ? `${window.location.origin}${window.location.pathname}?ref=${account}` : '...'}
