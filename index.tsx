@@ -48,8 +48,17 @@ const getLuckyNumbers = async (profile?: { username: string; bio: string }): Pro
       reason: data.reason || "The flash of entropy has chosen your path!"
     };
   } catch (e) {
-    console.error("AI Pick Error:", e);
-    return { numbers: [1, 3, 7, 9], reason: "The cosmic blockhash resonates with these numbers today." };
+    console.warn("AI API Error, falling back to Local Quantum entropy:", e);
+    // Robust fallback to prevent "stuck" UI on Vercel
+    const fallbackNums = [];
+    while(fallbackNums.length < 4) {
+      const r = Math.floor(Math.random() * 9) + 1;
+      if(!fallbackNums.includes(r)) fallbackNums.push(r);
+    }
+    return { 
+      numbers: fallbackNums.sort((a, b) => a - b), 
+      reason: "The Local Quantum Engine has detected a cosmic shift in your favor. Your destiny is still valid." 
+    };
   }
 };
 
@@ -299,7 +308,8 @@ function App() {
   }, [now]);
 
   const timeLeft = useMemo(() => {
-    const msLeft = Math.max(0, (lotterySlots[0] || Date.now()) - now.getTime());
+    const nextT = lotterySlots[0] || Date.now();
+    const msLeft = Math.max(0, nextT - now.getTime());
     const totalSeconds = Math.floor(msLeft / 1000);
     return {
       days: Math.floor(totalSeconds / 86400),
@@ -309,12 +319,14 @@ function App() {
     };
   }, [now, lotterySlots]);
 
-  // --- REVEAL SEQUENCE LOGIC ---
-  const runLiveLotterySequence = async () => {
+  // --- REVEAL SEQUENCE LOGIC FIX ---
+  const runLiveLotterySequence = useCallback(async () => {
     if (isRevealing) return;
     setIsRevealing(true);
     setLotteryPhase(0);
     setLiveLotteryNumbers([null, null, null, null]);
+    
+    // Derived from the most recent 00/12 window
     const finalNumbers = getWinningNumbersForSlot(lastSettledLotteryTime);
     
     for (let i = 1; i <= 4; i++) {
@@ -329,12 +341,13 @@ function App() {
     await new Promise(r => setTimeout(r, 800));
     setLotteryPhase(5);
     setIsRevealing(false);
-  };
+  }, [isRevealing, lastSettledLotteryTime]);
 
   useEffect(() => {
     if (showResultsModal) {
       runLiveLotterySequence();
     } else {
+      // Reset when closed
       setLiveLotteryNumbers([null, null, null, null]);
       setLotteryPhase(0);
     }
@@ -365,7 +378,7 @@ function App() {
     setAiReason(null);
     setSelectedNumbers([]);
     const lucky = await getLuckyNumbers(profile);
-    setSelectedNumbers(lucky.numbers.sort((a, b) => a - b));
+    setSelectedNumbers(lucky.numbers);
     setAiReason(lucky.reason);
     setAiLoading(false);
   };
@@ -419,7 +432,7 @@ function App() {
           </div>
         </div>
         <div className="flex items-center gap-2 md:gap-4">
-          <button onClick={() => setShowResultsModal(true)} className="px-3 py-1.5 md:px-4 md:py-2 border border-[#7FE6C3] dark:border-emerald-500/30 rounded-xl text-[9px] md:text-[11px] font-black uppercase tracking-wider text-[#04211C] dark:text-white transition-all hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all">{t.viewResults}</button>
+          <button onClick={() => setShowResultsModal(true)} className="px-3 py-1.5 md:px-4 md:py-2 border border-[#7FE6C3] dark:border-emerald-500/30 rounded-xl text-[9px] md:text-[11px] font-black uppercase tracking-wider text-[#04211C] dark:text-white hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all">{t.viewResults}</button>
           <button onClick={() => setShowGuideModal(true)} className="hidden sm:flex px-4 py-2 border border-[#7FE6C3] dark:border-emerald-500/30 rounded-xl text-[11px] font-black uppercase tracking-wider text-[#04211C] dark:text-white hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all">{t.howItWorks}</button>
           <button onClick={() => setLang(lang === 'en' ? 'zh' : 'en')} className="px-3 py-2 border border-[#7FE6C3] dark:border-emerald-500/30 rounded-xl text-[11px] font-black text-[#04211C] dark:text-white hover:bg-emerald-50 transition-all">{lang === 'en' ? '中文' : 'EN'}</button>
           <button onClick={() => setIsDark(!isDark)} className="p-2 rounded-xl border border-[#7FE6C3] dark:border-emerald-500/30 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-500/10">
@@ -563,7 +576,7 @@ function App() {
         </div>
       )}
 
-      {/* --- RESULTS MODAL --- */}
+      {/* --- RESULTS MODAL FIXED --- */}
       {showResultsModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 bg-black/60 backdrop-blur-sm">
           <div className="absolute inset-0" onClick={() => setShowResultsModal(false)} />
@@ -578,7 +591,7 @@ function App() {
                 ))}
              </div>
              <div className="flex flex-col items-center gap-3">
-               <p className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 dark:text-white/30">
+               <p className="text-[9px] md:text-[10px] font-bold text-emerald-800/40 dark:text-white/30 uppercase tracking-widest">
                  {lotteryPhase < 4 ? t.verifyingOnchain : t.revealSuccess}
                </p>
                {lotteryPhase === 5 && (
