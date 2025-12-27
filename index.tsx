@@ -79,11 +79,12 @@ const getWinningNumbersForSlot = (timestamp: number): number[] => {
 
 // --- SUB-COMPONENTS ---
 
-const Pill: React.FC<{ children: React.ReactNode; variant?: 'default' | 'gold' | 'mint' | 'danger' | 'info' }> = ({ children, variant = 'default' }) => {
+const Pill: React.FC<{ children: React.ReactNode; variant?: 'default' | 'gold' | 'mint' | 'danger' | 'info' | 'warning' }> = ({ children, variant = 'default' }) => {
   const styles = {
     gold: { bg: "rgba(212, 175, 55, 0.15)", color: "#8b6508", border: "rgba(212, 175, 55, 0.4)" },
     mint: { bg: "rgba(16, 185, 129, 0.1)", color: "#047857", border: "rgba(16, 185, 129, 0.2)" },
     danger: { bg: "rgba(239, 68, 68, 0.1)", color: "#b91c1c", border: "rgba(239, 68, 68, 0.2)" },
+    warning: { bg: "rgba(245, 158, 11, 0.1)", color: "#b45309", border: "rgba(245, 158, 11, 0.2)" },
     info: { bg: "rgba(59, 130, 246, 0.1)", color: "#1d4ed8", border: "rgba(59, 130, 246, 0.2)" },
     default: { bg: "rgba(127,230,195,0.14)", color: "#04211C", border: "rgba(127,230,195,0.55)" }
   };
@@ -196,7 +197,7 @@ function App() {
         rule2: "Lotteries use deterministic on-chain entropy to ensure fairness.",
         rule3: "Jackpot is shared among all winners of that specific lottery window.",
         rule4: "Referral fees (0.02 M-USDT) are paid instantly upon successful minting.",
-        disclaimer: "Legal Disclaimer", disclaimerText: "OnChain Jackpot is a decentralized game of chance. Participating in lotteries involves risk. Digital assets are highly volatile.",
+        disclaimer: "Legal Disclaimer", disclaimerText: "OnChain Jackpot is an experimental verifiable game of chance. Participating in lotteries involves financial risk. Digital assets are highly volatile and their value can decrease significantly.",
         latestResult: "Latest Result", settledMsg: "LOTTERY SUCCESSFULLY SETTLED",
         verifyingOnchain: "Verifying Onchain Entropy...", revealSuccess: "Settlement Complete",
         aiLucky: "AI Lucky Pick", days: "Days", hours: "Hours", minutes: "Minutes", seconds: "Seconds",
@@ -211,9 +212,17 @@ function App() {
         customAvatar: "Upload Image",
         claimPrize: "Claim Jackpot",
         claimed: "Claimed",
-        // Fixed: Added missing username and bio keys to fix property access errors in profile editing modal
         username: "Display Name",
-        bio: "Bio / Motto"
+        bio: "Bio / Motto",
+        inDepthTitle: "Platform Mechanics & Transparency",
+        howItWorksDetails: "Every 12 hours, the Onchain Daily Lottery settles. Winning numbers are derived from the blockhash of the target timestamp's block, ensuring zero human intervention. 88% of all ticket sales go directly into the Active Vault.",
+        transparency: "Verified on MerlinChain",
+        transparencyDesc: "All NFT tickets are ERC721 assets. You can verify your participation and the outcome directly on the blockchain explorer.",
+        riskTitle: "Risk & Compliance",
+        riskDesc: "Please participate responsibly. This platform is decentralized and automated. Ensure you are compliant with your local jurisdiction's regulations regarding digital assets and games of chance.",
+        earningsSummary: "Earnings & Rewards",
+        totalEarnings: "Total Earnings",
+        claimAll: "Claim All Rewards"
       },
       zh: {
         title: "链上大奖", connect: "连接钱包", heroTitle: "链上每日彩票",
@@ -232,7 +241,7 @@ function App() {
         rule2: "开奖使用确定的链上随机熵，确保公平性。",
         rule3: "奖池由该特定开奖时段的所有中奖者平分。",
         rule4: "成功铸造后，推荐费（0.02 M-USDT）将立即支付。",
-        disclaimer: "法律声明", disclaimerText: "数字资产具有高度波动性。请仅使用您可以承受损失的资金。",
+        disclaimer: "法律声明", disclaimerText: "OnChain Jackpot 是一款实验性的可验证几率游戏。参与彩票涉及财务风险。数字资产具有高度波动性。",
         latestResult: "最新开奖结果", settledMsg: "开奖已成功结算",
         verifyingOnchain: "验证链上数据...", revealSuccess: "结算完成",
         aiLucky: "AI 幸运挑选", days: "天", hours: "小时", minutes: "分钟", seconds: "秒",
@@ -247,9 +256,17 @@ function App() {
         customAvatar: "上传图片",
         claimPrize: "领取大奖",
         claimed: "已领取",
-        // Fixed: Added missing username and bio keys to fix property access errors in profile editing modal
         username: "显示名称",
-        bio: "个人简介 / 座右铭"
+        bio: "个人简介 / 座右铭",
+        inDepthTitle: "平台机制与透明度",
+        howItWorksDetails: "每 12 小时结算一次。中奖号码源自目标时间戳区块的哈希值，确保零人工干预。所有门票销售的 88% 直接进入活跃保险库。",
+        transparency: "在 MerlinChain 上验证",
+        transparencyDesc: "所有 NFT 门票均为 ERC721 资产。您可以直接在区块链浏览器上验证您的参与情况和结果。",
+        riskTitle: "风险与合规",
+        riskDesc: "请负责任地参与。平台完全去中心化并自动化。请确保您符合当地关于数字资产和几率游戏的法律法规。",
+        earningsSummary: "收益与奖励",
+        totalEarnings: "总收益",
+        claimAll: "领取所有奖励"
       }
     };
     return strings[lang];
@@ -399,11 +416,13 @@ function App() {
     const updated = tickets.map(t => t.id === ticketId ? { ...t, claimed: true } : t);
     setTickets(updated);
     saveToWallet('tickets', updated);
-    alert("Jackpot Reward Claimed Successfully!");
+    // Add to referral balance simulation as "Earnings"
+    setReferralBalance(prev => ({ ...prev, total: prev.total + 5.0, available: prev.available + 5.0 }));
+    alert("Jackpot Reward Claimed Successfully! Winnings added to your earnings balance.");
   };
 
   const copyRefLink = () => {
-    const link = `${window.location.origin}/?ref=${account}`;
+    const link = `${window.location.origin}${window.location.pathname}?ref=${account}`;
     navigator.clipboard.writeText(link);
     alert("Referral link copied to clipboard!");
   };
@@ -463,13 +482,17 @@ function App() {
             <div className="relative bg-[#04211C] rounded-[3rem] p-12 text-white shadow-2xl border border-emerald-500/20 overflow-hidden">
               <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'linear-gradient(rgba(16, 185, 129, 0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(16, 185, 129, 0.5) 1px, transparent 1px)', backgroundSize: '12px 12px' }} />
               <div className="absolute -right-20 -bottom-20 opacity-10 rotate-12 pointer-events-none"><Logo size={320} /></div>
+              
               <div className="flex justify-between items-start relative z-10 mb-12">
-                <div className="flex flex-col gap-1">
-                  <span className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em]">{t.prizePool}</span>
-                  <div className="h-0.5 w-12 bg-emerald-500/30" />
+                <div className="flex flex-col">
+                  <span className="text-[11px] font-black text-emerald-500 uppercase tracking-[0.2em]">REAL-TIME</span>
+                  <h3 className="text-2xl font-black text-white uppercase tracking-tight" style={{ textShadow: '2px 2px 0px rgba(0, 255, 255, 0.2), -1px -1px 0px rgba(255, 0, 0, 0.2)' }}>ACTIVE VAULT</h3>
                 </div>
-                <div className="h-10 w-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center p-2"><Logo size={24} /></div>
+                <div className="h-14 w-14 rounded-[1.25rem] bg-white/5 border border-white/10 flex items-center justify-center shadow-inner">
+                  <Logo size={32} />
+                </div>
               </div>
+
               <div className="relative z-10 py-4">
                 <div className="absolute inset-0 bg-emerald-500/10 blur-[60px] rounded-full pointer-events-none" />
                 <div className="flex flex-col gap-2">
@@ -498,7 +521,7 @@ function App() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-12 mb-20">
           <div className="lg:col-span-7 bg-white rounded-[2.5rem] border border-gray-100 p-10 shadow-xl min-h-[500px]">
             <h2 className="text-2xl font-bold font-display" style={{ color: COLORS.midnight }}>{t.historyTitle}</h2>
             <p className="mt-2 text-sm font-medium text-[#0D6B58] opacity-40">{t.historySub}</p>
@@ -561,6 +584,70 @@ function App() {
         </div>
       </main>
 
+      {/* --- MODALS --- */}
+
+      {showGuideModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+          <div className="absolute inset-0" onClick={() => setShowGuideModal(false)} />
+          <div className="relative z-10 w-full max-w-4xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
+            <div className="p-8 md:p-12 border-b flex items-center justify-between">
+              <div>
+                <h2 className="text-3xl font-black font-display text-[#04211C]">{t.howItWorks}</h2>
+                <p className="text-sm font-medium opacity-40 uppercase tracking-widest mt-1">Platform Guidelines & Legal</p>
+              </div>
+              <button onClick={() => setShowGuideModal(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-12">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <Step num={1} title={t.step1Title} desc={t.step1Desc} />
+                <Step num={2} title={t.step2Title} desc={t.step2Desc} />
+                <Step num={3} title={t.step3Title} desc={t.step3Desc} />
+                <Step num={4} title={t.step4Title} desc={t.step4Desc} />
+              </div>
+
+              <div className="pt-8 border-t border-emerald-50">
+                <h3 className="text-xl font-black font-display mb-4 text-[#04211C] uppercase tracking-wider">{t.inDepthTitle}</h3>
+                <p className="text-sm font-medium text-emerald-900/60 leading-relaxed max-w-3xl mb-8">{t.howItWorksDetails}</p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                  <div className="p-6 rounded-2xl bg-emerald-50/40 border border-emerald-100">
+                    <h4 className="font-black text-xs uppercase tracking-widest mb-3 text-emerald-800">{t.transparency}</h4>
+                    <p className="text-xs font-medium text-emerald-900/60 leading-relaxed">{t.transparencyDesc}</p>
+                  </div>
+                  <div className="p-6 rounded-2xl bg-emerald-50/40 border border-emerald-100">
+                    <h4 className="font-black text-xs uppercase tracking-widest mb-3 text-emerald-800">{t.riskTitle}</h4>
+                    <p className="text-xs font-medium text-emerald-900/60 leading-relaxed">{t.riskDesc}</p>
+                  </div>
+                </div>
+
+                <h3 className="text-lg font-black font-display mb-6 uppercase tracking-wider text-[#04211C]">{t.rules}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[t.rule1, t.rule2, t.rule3, t.rule4].map((rule, idx) => (
+                    <div key={idx} className="flex gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-medium text-emerald-900/60 leading-relaxed">
+                      <span className="flex-shrink-0 h-6 w-6 rounded-lg bg-emerald-900 text-white flex items-center justify-center text-[10px] font-black">{idx + 1}</span>
+                      {rule}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-8 rounded-3xl bg-red-50 border border-red-100 shadow-sm">
+                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-red-600 mb-4 flex items-center gap-2">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  {t.disclaimer}
+                </h3>
+                <p className="text-xs font-medium text-red-900/70 leading-relaxed max-w-3xl italic">
+                  {t.disclaimerText}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showResultsModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
           <div className="absolute inset-0" onClick={() => setShowResultsModal(false)} />
@@ -618,13 +705,35 @@ function App() {
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-12 space-y-12 bg-gray-50/50">
-              <section className="bg-white p-8 rounded-[2rem] border border-emerald-100 shadow-sm flex flex-col lg:flex-row gap-8 items-center">
-                <div className="flex-1">
-                  <h3 className="text-xl font-black font-display mb-2">{t.referral}</h3>
-                  <p className="text-xs font-bold text-emerald-800/40 uppercase tracking-widest mb-6">{t.referralBonus}</p>
-                  <div className="flex gap-3"><div className="flex-1 bg-gray-50 border border-emerald-50 px-4 py-3 rounded-xl text-xs font-mono truncate">{account ? `${window.location.origin}/?ref=${account}` : '...'}</div><button onClick={copyRefLink} className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-emerald-700 transition-colors">{t.copyLink}</button></div>
+              <section className="bg-white p-8 rounded-[2rem] border border-emerald-100 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none scale-110"><Logo size={120} /></div>
+                <div className="flex flex-col lg:flex-row gap-12 items-start relative z-10">
+                  <div className="flex-1 w-full">
+                    <h3 className="text-xl font-black font-display mb-2">{t.earningsSummary}</h3>
+                    <p className="text-xs font-bold text-emerald-800/40 uppercase tracking-widest mb-8">{t.referralBonus}</p>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                       <div className="bg-gray-50 border border-gray-100 p-6 rounded-2xl">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 block mb-2">{t.totalEarnings}</span>
+                          <div className="flex items-baseline gap-2"><span className="text-3xl font-black text-[#04211C]">{referralBalance.total.toFixed(2)}</span><span className="text-xs font-bold text-emerald-600">M-USDT</span></div>
+                       </div>
+                       <div className="bg-emerald-900 p-6 rounded-2xl text-white shadow-xl flex flex-col justify-between">
+                          <div>
+                            <span className="text-[10px] font-black uppercase tracking-widest opacity-40 block mb-1">AVAILABLE TO CLAIM</span>
+                            <div className="flex items-baseline gap-2"><span className="text-3xl font-black">{referralBalance.available.toFixed(2)}</span><span className="text-xs font-bold opacity-30">M-USDT</span></div>
+                          </div>
+                          <button onClick={() => { if (referralBalance.available > 0) { setReferralBalance(prev => ({ ...prev, available: 0 })); alert("Earnings successfully claimed to your wallet!"); } }} disabled={referralBalance.available <= 0} className="mt-6 w-full py-3 bg-emerald-500 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-400 disabled:opacity-30 disabled:hover:bg-emerald-500 transition-all">{t.claimAll}</button>
+                       </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <label className="text-[10px] font-black uppercase text-emerald-800/40 tracking-widest block">{t.referral}</label>
+                      <div className="flex gap-3"><div className="flex-1 bg-gray-50 border border-emerald-50 px-4 py-3 rounded-xl text-xs font-mono truncate">{account ? `${window.location.origin}${window.location.pathname}?ref=${account}` : '...'}</div><button onClick={copyRefLink} className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-emerald-700 transition-colors">{t.copyLink}</button></div>
+                    </div>
+                  </div>
                 </div>
               </section>
+              
               <section>
                 <h3 className="text-xl font-black font-display mb-8">{t.myTickets} ({tickets.length})</h3>
                 {tickets.length === 0 ? (<div className="py-20 text-center border-2 border-dashed rounded-[2rem] border-emerald-100 text-emerald-900/40 font-bold uppercase tracking-widest bg-white">NO ENTRIES FOUND</div>) : (
@@ -653,6 +762,16 @@ function App() {
       <footer className="max-w-7xl mx-auto px-8 py-20 border-t border-emerald-100 text-center">
         <p className="text-[10px] font-black text-emerald-900/20 uppercase tracking-[0.3em]">{t.footer}</p>
       </footer>
+    </div>
+  );
+}
+
+function Step({ num, title, desc }: { num: number, title: string, desc: string }) {
+  return (
+    <div className="flex flex-col items-center text-center">
+      <div className="h-12 w-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-black text-xl mb-4">{num}</div>
+      <h4 className="font-bold mb-2 text-sm" style={{ color: COLORS.midnight }}>{title}</h4>
+      <p className="text-[11px] text-emerald-900/60 leading-relaxed font-medium">{desc}</p>
     </div>
   );
 }
