@@ -40,19 +40,6 @@ const getWinningNumbersForSlot = (timestamp: number): number[] => {
   return result;
 };
 
-const generateDeterministicNumbers = async (seedString: string): Promise<number[]> => {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(seedString + "onchain-jackpot-entropy-v2-merlin");
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return [
-    (hashArray[0] % 9) + 1,
-    (hashArray[1] % 9) + 1,
-    (hashArray[2] % 9) + 1,
-    (hashArray[3] % 9) + 1
-  ];
-};
-
 const Pill: React.FC<{ children: React.ReactNode; variant?: 'default' | 'gold' | 'mint' | 'danger' | 'info' | 'warning' }> = ({ children, variant = 'default' }) => {
   const getStyles = () => {
     switch(variant) {
@@ -373,22 +360,28 @@ export default function App() {
 
   const [recentMints, setRecentMints] = useState<{addr: string, nums: number[], time: string}[]>([]);
 
+  // Fixed: Update prediction slots every second to instantly remove past slots.
+  // Changed dependency from [now.getUTCDate(), now.getUTCHours()] to [now].
   const predictionSlots = useMemo(() => {
     const slots: number[] = [];
-    const base = new Date();
+    const base = new Date(now);
     base.setUTCMinutes(0, 0, 0);
+    base.setUTCSeconds(0);
+    base.setUTCMilliseconds(0);
+
     for (let i = 0; i < 96; i++) {
         const d = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate(), base.getUTCHours() + i, 0, 0, 0));
         const hour = d.getUTCHours();
         if (hour === 0 || hour === 12) {
-            if (d.getTime() > Date.now() + 90000) {
+            // Cutoff: Hide slot if we are within 90 seconds of it or past it.
+            if (d.getTime() > now.getTime() + 90000) {
                 slots.push(d.getTime());
             }
         }
         if (slots.length >= 8) break;
     }
     return slots;
-  }, [now.getUTCDate(), now.getUTCHours()]);
+  }, [now]); // Update every second
 
   const lastSettledPredictionTime = useMemo(() => {
     const d = new Date();
@@ -425,16 +418,16 @@ export default function App() {
   }, [lastSettledPredictionTime]);
 
   const nextPredictionTime = predictionSlots[0] || Date.now();
-  const [msLeft, setMsLeft] = useState(nextPredictionTime - Date.now());
+  
+  // Simplified time left logic, derived directly from state
+  const msLeft = Math.max(0, nextPredictionTime - now.getTime());
 
   useEffect(() => {
     const timer = setInterval(() => {
-      const current = Date.now();
       setNow(new Date());
-      setMsLeft(Math.max(0, nextPredictionTime - current));
     }, 1000);
     return () => clearInterval(timer);
-  }, [nextPredictionTime]);
+  }, []);
 
   const timeLeft = useMemo(() => {
     const totalSeconds = Math.floor(msLeft / 1000);

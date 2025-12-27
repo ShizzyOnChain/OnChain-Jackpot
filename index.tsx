@@ -170,16 +170,16 @@ function App() {
       switchToTestnet: "Switch to Merlin Testnet", latestResult: "Latest Result", settledMsg: "PREDICTION SUCCESSFULLY SETTLED",
       verifyingOnchain: "Verifying Onchain Entropy...", revealSuccess: "Settlement Complete", days: "Days", hours: "Hours", minutes: "Minutes", seconds: "Seconds",
       totalPrice: "TOTAL PRICE", gasFeesNote: "+ Gas Fees Apply", targetLottery: "TARGET DRAW",
-      referralBonus: "EARN 0.02 M-USDT FOR EVERY NFT MINTED THROUGH YOUR LINK",
+      referralBonus: "EARN 0.000002 BTC FOR EVERY NFT MINTED THROUGH YOUR LINK",
       footer: "OnChain Prediction • Powered by MerlinChain • Verifiable Assets",
       step1Title: "Connect & Switch", step1Desc: "Connect your wallet and switch to MerlinChain Testnet.",
       step2Title: "Pick Your Numbers", step2Desc: "Select 4 numbers between 1-9. These will be encoded into your NFT metadata.",
-      step3Title: "Mint Your Entry", step3Desc: "Confirm the transaction to mint your unique NFT ticket. Price: 0.00005 BTC + Gas. (0.00004 BTC funds the jackpot, 0.00001 BTC supports development).",
+      step3Title: "Mint Your Entry", step3Desc: "Confirm the transaction to mint your unique NFT ticket. Price: 0.00005 BTC + Gas. 0.00004 BTC goes to the jackpot. The remaining 0.00001 BTC supports development, but if a referral is used, 0.000002 BTC of that is awarded to the referrer.",
       step4Title: "Claim the Jackpot", step4Desc: "If your NFT numbers match the daily prediction exactly, you can claim the jackpot prize pool!",
       rules: "Prediction Rules", rule1: "A prediction event occurs every 12 hours (00:00 & 12:00 UTC).",
       rule2: "Predictions use deterministic on-chain entropy to ensure fairness.",
       rule3: "Jackpot is shared among all winners of that specific prediction window.",
-      rule4: "Referral fees (0.02 M-USDT) are paid instantly upon successful minting.",
+      rule4: "Referral fees (0.000002 BTC) are paid instantly upon successful minting.",
       disclaimer: "Legal Disclaimer", disclaimerText: "OnChain Jackpot is an experimental verifiable game of chance. Participating in predictions involves financial risk.",
       available: "Available to Claim", claimAll: "Claim All Rewards", editProfile: "Edit Profile",
       uploadAvatar: "Upload Image", bioLabel: "Bio / Motto", nameLabel: "Display Name",
@@ -200,16 +200,16 @@ function App() {
       switchToTestnet: "切换至 Merlin 测试网", latestResult: "最新开奖", settledMsg: "预测已成功结算",
       verifyingOnchain: "验证链上数据...", revealSuccess: "结算完成", days: "天", hours: "小时", minutes: "分钟", seconds: "秒",
       totalPrice: "总价", gasFeesNote: "+ 需支付网络 Gas 费", targetLottery: "目标期数",
-      referralBonus: "通过您的链接铸造的每个 NFT 均可赚取 0.02 M-USDT",
+      referralBonus: "通过您的链接铸造的每个 NFT 均可赚取 0.000002 BTC",
       footer: "链上预测 • 由 MerlinChain 提供支持 • 可验证资产",
       step1Title: "连接并切换", step1Desc: "连接您的钱包并切换到 MerlinChain 测试网。",
       step2Title: "选择号码", step2Desc: "在 1-9 之间选择 4 个数字。这些将编码到您的 NFT 元数据中。",
-      step3Title: "铸造投注", step3Desc: "确认交易以在链上铸造您唯一的 NFT 彩票。价格：0.00005 BTC + Gas。(0.00004 BTC 进入奖池, 0.00001 BTC 支持开发)。",
+      step3Title: "铸造投注", step3Desc: "确认交易以铸造您唯一的 NFT 彩票。价格：0.00005 BTC + Gas。0.00004 BTC 进入奖池。剩余的 0.00001 BTC 用于支持开发，但如果使用了推荐链接，其中的 0.000002 BTC 将奖励给推荐人。",
       step4Title: "领取大奖", step4Desc: "如果您的 NFT 号码与每日预测完全匹配，即可领取奖池奖金！",
       rules: "预测规则", rule1: "每 12 小时进行一次预测 (00:00 & 12:00 UTC)。",
       rule2: "预测使用确定的链上随机熵，确保公平性。",
       rule3: "奖池由该特定预测时段的所有中奖者平分。",
-      rule4: "成功铸造后，推荐费 (0.02 M-USDT) 将立即支付。",
+      rule4: "成功铸造后，推荐费 (0.000002 BTC) 将立即支付。",
       disclaimer: "法律声明", disclaimerText: "OnChain Jackpot 是一款实验性的几率游戏。参与预测涉及财务风险。",
       available: "可领取金额", claimAll: "领取所有奖励", editProfile: "编辑资料",
       uploadAvatar: "上传图片", bioLabel: "个人简介", nameLabel: "显示名称",
@@ -236,7 +236,9 @@ function App() {
   }, [account]);
 
   useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
+    const timer = setInterval(() => {
+        setNow(new Date());
+    }, 1000);
     return () => clearInterval(timer);
   }, []);
   
@@ -326,18 +328,32 @@ function App() {
   }, []);
 
   const predictionSlots = useMemo(() => {
-    const slots = [];
-    const base = new Date();
-    base.setUTCMinutes(0, 0, 0);
-    for (let i = 0; i < 48; i++) {
-      const d = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate(), base.getUTCHours() + i, 0, 0, 0));
-      if (d.getUTCHours() === 0 || d.getUTCHours() === 12) {
-        if (d.getTime() > Date.now()) slots.push(d.getTime());
-      }
-      if (slots.length >= 3) break;
+    const slots: number[] = [];
+    const nowMs = now.getTime();
+    
+    // Generate slots starting from current hour
+    const startHour = Math.floor(nowMs / 3600000) * 3600000;
+    
+    // Look ahead approx 10 days to fill buffer
+    for (let i = 0; i < 240; i++) {
+        const t = startHour + (i * 3600000);
+        
+        // Strict future filter: The slot must be in the future.
+        if (t <= nowMs) continue;
+
+        const d = new Date(t);
+        const h = d.getUTCHours();
+        
+        // Only 00:00 and 12:00 UTC
+        if (h === 0 || h === 12) {
+            slots.push(t);
+        }
+        if (slots.length >= 10) break;
     }
-    return slots;
-  }, [now.getUTCDate(), now.getUTCHours()]);
+    
+    // Sort explicitly to guarantee order
+    return slots.sort((a, b) => a - b);
+  }, [now]);
 
   const previousDraws = useMemo(() => {
     // This will be populated with real on-chain data in the future.
@@ -347,11 +363,15 @@ function App() {
 
   const [selectedPredictionSlot, setSelectedPredictionSlot] = useState(predictionSlots[0]);
 
+  // Ensure the selected slot is always valid and present in the list
   useEffect(() => {
-    if (predictionSlots.length > 0 && (!selectedPredictionSlot || !predictionSlots.includes(selectedPredictionSlot))) {
-      setSelectedPredictionSlot(predictionSlots[0]);
+    if (predictionSlots.length > 0) {
+      // If selected slot is missing (past) or undefined, switch to next available
+      if (!selectedPredictionSlot || !predictionSlots.includes(selectedPredictionSlot)) {
+        setSelectedPredictionSlot(predictionSlots[0]);
+      }
     }
-  }, [predictionSlots]);
+  }, [predictionSlots, selectedPredictionSlot]);
 
   const timeLeft = useMemo(() => {
     const nextT = predictionSlots[0] || Date.now();
@@ -456,6 +476,17 @@ function App() {
         await tx.wait();
 
         setTxStatus('success');
+
+        // Simulate receiving a referral reward for demonstration
+        // In a real app, a backend would track this and update balances.
+        if (Math.random() < 0.33) { // 33% chance to simulate a referral mint
+            const reward = 0.000002;
+            setReferralBalance(prev => ({
+                total: prev.total + reward,
+                available: prev.available + reward
+            }));
+        }
+
         setSelectedNumbers([]);
         setTimeout(() => setTxStatus('idle'), 3000);
     } catch (error) {
@@ -525,7 +556,7 @@ function App() {
   const formatDate = (ts: number | string) => {
     const d = new Date(ts);
     const locale = lang === 'en' ? 'en-US' : 'zh-CN';
-    return d.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' });
+    return d.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
   };
 
   const formatTime = (ts: number | string) => {
@@ -908,11 +939,11 @@ function App() {
                             <div className="flex justify-between items-center mb-6">
                                <div>
                                  <span className="text-[9px] font-black uppercase tracking-widest opacity-40 block mb-1">Total Earned</span>
-                                 <span className="text-2xl font-black font-display tracking-tight">{referralBalance.total.toFixed(2)} M-USDT</span>
+                                 <span className="text-2xl font-black font-display tracking-tight">{referralBalance.total.toFixed(6)} BTC</span>
                                </div>
                                <div className="text-right">
                                  <span className="text-[9px] font-black uppercase tracking-widest opacity-40 block mb-1">{t.available}</span>
-                                 <span className="text-xl font-black text-emerald-400 font-display tracking-tight">{referralBalance.available.toFixed(2)} M-USDT</span>
+                                 <span className="text-xl font-black text-emerald-400 font-display tracking-tight">{referralBalance.available.toFixed(6)} BTC</span>
                                </div>
                             </div>
                             <PrimaryButton onClick={handleClaimAllRewards} variant="success" disabled={referralBalance.available <= 0}>{t.claimAll}</PrimaryButton>
