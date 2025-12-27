@@ -134,6 +134,7 @@ function App() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [tickets, setTickets] = useState<any[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [profile, setProfile] = useState({
     username: "LuckyPlayer",
@@ -168,7 +169,8 @@ function App() {
       rule3: "Jackpot is shared among all winners of that specific lottery window.",
       rule4: "Referral fees (0.02 M-USDT) are paid instantly upon successful minting.",
       disclaimer: "Legal Disclaimer", disclaimerText: "OnChain Jackpot is an experimental verifiable game of chance. Participating in lotteries involves financial risk.",
-      available: "Available to Claim", claimAll: "Claim All Rewards", editProfile: "Edit Profile"
+      available: "Available to Claim", claimAll: "Claim All Rewards", editProfile: "Edit Profile",
+      uploadAvatar: "Upload Image", bioLabel: "Bio / Motto", nameLabel: "Display Name"
     },
     zh: {
       title: "链上大奖", connect: "连接", heroTitle: "链上每日彩票",
@@ -192,7 +194,8 @@ function App() {
       rule3: "奖池由该特定开奖时段的所有中奖者平分。",
       rule4: "成功铸造后，推荐费 (0.02 M-USDT) 将立即支付。",
       disclaimer: "法律声明", disclaimerText: "OnChain Jackpot 是一款实验性的几率游戏。参与彩票涉及财务风险。",
-      available: "可领取金额", claimAll: "领取所有奖励", editProfile: "编辑资料"
+      available: "可领取金额", claimAll: "领取所有奖励", editProfile: "编辑资料",
+      uploadAvatar: "上传图片", bioLabel: "个人简介", nameLabel: "显示名称"
     }
   };
 
@@ -293,7 +296,11 @@ function App() {
     if (window.ethereum) {
       try {
         const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        setAccount(accs[0]);
+        if (accs.length > 0) {
+          setAccount(accs[0]);
+          const cid = await window.ethereum.request({ method: 'eth_chainId' });
+          setChainId(cid);
+        }
       } catch (e) { console.error(e); }
     } else alert("Install MetaMask");
   };
@@ -322,7 +329,6 @@ function App() {
     setTxStatus('mining');
     await new Promise(r => setTimeout(r, 2000));
     
-    // Quantity is now always 1
     const newTks = [{
       id: Math.random().toString(36).substring(7).toUpperCase(),
       numbers: [...selectedNumbers],
@@ -339,12 +345,37 @@ function App() {
     setTimeout(() => setTxStatus('idle'), 3000);
   };
 
+  // --- FIX: Defined the missing saveProfile function to handle persisting profile changes to localStorage and toggling edit mode ---
+  const saveProfile = () => {
+    if (account) {
+      localStorage.setItem(`profile_${account}`, JSON.stringify(profile));
+      setIsEditingProfile(false);
+    }
+  };
+
   const copyRefLink = () => {
     if (account) {
       const link = `${window.location.origin}${window.location.pathname}?ref=${account}`;
       navigator.clipboard.writeText(link);
       alert("Link copied!");
     }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfile(prev => ({ ...prev, avatarUrl: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleClaimAllRewards = async () => {
+    if (referralBalance.available <= 0) return;
+    alert("Claiming rewards on MerlinChain...");
+    setReferralBalance(prev => ({ ...prev, available: 0 }));
   };
 
   const formatDate = (ts: number | string) => {
@@ -381,11 +412,11 @@ function App() {
             {isDark ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-emerald-400"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-midnight"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>}
           </button>
           {account ? (
-            <button onClick={() => setShowProfileModal(true)} className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-emerald-100 dark:border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/5 text-emerald-800 dark:text-emerald-100 font-bold text-xs">
-              <img src={profile.avatarUrl} alt="Avatar" className="h-6 w-6 rounded-full object-cover" />
+            <button onClick={() => setShowProfileModal(true)} className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-emerald-100 dark:border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/5 text-emerald-800 dark:text-emerald-100 font-bold text-xs shadow-sm transition-all hover:bg-emerald-100 dark:hover:bg-emerald-500/10">
+              <img src={profile.avatarUrl} alt="Avatar" className="h-6 w-6 rounded-full object-cover border border-emerald-200" />
               <span className="hidden lg:inline max-w-[80px] truncate">{profile.username}</span>
             </button>
-          ) : <button onClick={connectWallet} className="bg-[#04211C] dark:bg-emerald-500 text-white dark:text-[#04211C] px-6 py-2 rounded-xl text-xs font-bold">{t.connect}</button>}
+          ) : <button onClick={connectWallet} className="bg-[#04211C] dark:bg-emerald-500 text-white dark:text-[#04211C] px-6 py-2 rounded-xl text-xs font-bold shadow-md hover:scale-[1.05] transition-all">{t.connect}</button>}
         </div>
       </header>
 
@@ -406,7 +437,7 @@ function App() {
 
         <div className="mt-12 bg-white dark:bg-[#04211C] rounded-[2rem] border border-gray-100 dark:border-emerald-500/10 p-8 flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl">
           <div className="flex items-center gap-4">
-            <div className="p-2.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl text-emerald-800 dark:text-emerald-400"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            <div className="p-2.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl text-emerald-800 dark:text-emerald-400"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
             <div><h3 className="font-bold text-lg dark:text-white">{t.countdownTitle}</h3><p className="text-xs font-medium text-gray-400 dark:text-emerald-500/40">{t.countdownSub}</p></div>
           </div>
           <div className="flex gap-6 justify-center">
@@ -442,10 +473,10 @@ function App() {
                   <select 
                     value={selectedSlot} 
                     onChange={(e) => setSelectedSlot(Number(e.target.value))}
-                    className="w-full appearance-none px-5 py-4 rounded-2xl border-2 border-emerald-50 bg-white text-sm font-bold text-emerald-900 focus:outline-none focus:border-emerald-400 transition-all cursor-pointer"
+                    className="w-full appearance-none px-5 py-4 rounded-2xl border-2 border-emerald-50 dark:border-emerald-500/10 bg-white dark:bg-emerald-500/5 text-sm font-bold text-emerald-900 dark:text-white focus:outline-none focus:border-emerald-400 transition-all cursor-pointer"
                   >
                     {lotterySlots.map(ts => (
-                      <option key={ts} value={ts}>
+                      <option key={ts} value={ts} className="dark:bg-[#04211C]">
                         {formatDate(ts)} - {formatTime(ts)}
                       </option>
                     ))}
@@ -483,11 +514,11 @@ function App() {
       {showResultsModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
           <div className="relative z-10 w-full max-w-lg bg-white dark:bg-[#04211C] rounded-[2rem] p-10 text-center shadow-2xl animate-in zoom-in-95 duration-300">
-             <button onClick={() => setShowResultsModal(false)} className="absolute top-6 right-6 p-2 dark:text-white"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+             <button onClick={() => setShowResultsModal(false)} className="absolute top-6 right-6 p-2 dark:text-white hover:scale-110 transition-all"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
              <h2 className="text-3xl font-black font-display text-[#04211C] dark:text-white mb-8">{t.latestResult}</h2>
              <div className="flex justify-center gap-4 mb-12 h-24">
                 {liveLotteryNumbers.map((n, i) => (
-                  <div key={i} className={`h-20 w-20 rounded-full border-4 flex items-center justify-center transition-all duration-700 ${n !== null ? 'scale-110 border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' : 'border-dashed border-emerald-100 dark:border-emerald-500/20'}`}>
+                  <div key={i} className={`h-20 w-20 rounded-full border-4 flex items-center justify-center transition-all duration-700 ${n !== null ? 'scale-110 border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 shadow-lg' : 'border-dashed border-emerald-100 dark:border-emerald-500/20'}`}>
                     <span className="font-black text-2xl dark:text-white">{n !== null ? n : '?'}</span>
                   </div>
                 ))}
@@ -502,18 +533,29 @@ function App() {
       {/* --- PROFILE MODAL --- */}
       {showProfileModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
-          <div className="absolute inset-0" onClick={() => setShowProfileModal(false)} />
+          <div className="absolute inset-0" onClick={() => { if(!isEditingProfile) setShowProfileModal(false); }} />
           <div className="relative z-10 w-full max-w-4xl bg-white dark:bg-[#04211C] rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
             <div className="p-12 border-b dark:border-emerald-500/10 bg-white dark:bg-[#04211C] flex flex-col md:flex-row items-center justify-between gap-8">
               <div className="flex items-center gap-8">
-                <img src={profile.avatarUrl} alt="Profile" className="h-32 w-32 rounded-full border-4 border-emerald-100 dark:border-emerald-500/20 shadow-lg object-cover" />
+                <div className="relative group">
+                  <img src={profile.avatarUrl} alt="Profile" className="h-32 w-32 rounded-full border-4 border-emerald-100 dark:border-emerald-500/20 shadow-lg object-cover" />
+                  {isEditingProfile && (
+                    <button onClick={() => fileInputRef.current?.click()} className="absolute inset-0 bg-black/40 rounded-full flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mb-1"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                      <span className="text-[9px] font-black text-white uppercase tracking-wider">{t.uploadAvatar}</span>
+                    </button>
+                  )}
+                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
+                </div>
                 <div>
                   <h2 className="text-3xl font-black font-display text-[#04211C] dark:text-white">{profile.username}</h2>
                   <p className="text-xs font-bold text-[#0D6B58]/40 dark:text-white/30 uppercase tracking-widest mt-1 font-mono">{account}</p>
                 </div>
               </div>
-              <div className="flex flex-col gap-2">
-                <PrimaryButton onClick={() => setIsEditingProfile(!isEditingProfile)} variant="outline">{isEditingProfile ? t.save : t.editProfile}</PrimaryButton>
+              <div className="flex flex-col gap-2 min-w-[150px]">
+                <PrimaryButton onClick={() => { if(isEditingProfile) saveProfile(); setIsEditingProfile(!isEditingProfile); }} variant={isEditingProfile ? "success" : "outline"}>
+                  {isEditingProfile ? t.save : t.editProfile}
+                </PrimaryButton>
                 <PrimaryButton onClick={() => setAccount(null)} variant="warning">{t.logout}</PrimaryButton>
               </div>
             </div>
@@ -521,17 +563,21 @@ function App() {
               <div className="flex-1 overflow-y-auto p-12 space-y-8 bg-gray-50/50 dark:bg-[#021411]/50 scrollbar-hide">
                 {isEditingProfile ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-top-4">
-                    <div className="space-y-4">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 block">Display Name</label>
-                      <input className="w-full bg-white dark:bg-[#04211C] border border-emerald-100 dark:border-emerald-500/10 rounded-xl px-4 py-3 font-bold" value={profile.username} onChange={e => setProfile({...profile, username: e.target.value})} />
-                      <label className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 block mt-4">Bio</label>
-                      <textarea className="w-full bg-white dark:bg-[#04211C] border border-emerald-100 dark:border-emerald-500/10 rounded-xl px-4 py-3 font-medium h-24" value={profile.bio} onChange={e => setProfile({...profile, bio: e.target.value})} />
+                    <div className="space-y-6">
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 block mb-2">{t.nameLabel}</label>
+                        <input className="w-full bg-white dark:bg-[#04211C] border border-emerald-100 dark:border-emerald-500/10 rounded-xl px-4 py-3 font-bold dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none" value={profile.username} onChange={e => setProfile({...profile, username: e.target.value})} />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 block mb-2">{t.bioLabel}</label>
+                        <textarea className="w-full bg-white dark:bg-[#04211C] border border-emerald-100 dark:border-emerald-500/10 rounded-xl px-4 py-3 font-medium h-24 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none" value={profile.bio} onChange={e => setProfile({...profile, bio: e.target.value})} />
+                      </div>
                     </div>
                     <div>
-                      <label className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 block mb-4">Select Avatar</label>
+                      <label className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 block mb-4">Preset Avatars</label>
                       <div className="grid grid-cols-3 gap-4">
                         {PRELOADED_AVATARS.map(url => (
-                          <button key={url} onClick={() => setProfile({...profile, avatarUrl: url})} className={`rounded-xl overflow-hidden border-4 transition-all ${profile.avatarUrl === url ? 'border-emerald-500 scale-105 shadow-lg' : 'border-transparent opacity-50'}`}>
+                          <button key={url} onClick={() => setProfile({...profile, avatarUrl: url})} className={`rounded-xl overflow-hidden border-4 transition-all ${profile.avatarUrl === url ? 'border-emerald-500 scale-105 shadow-lg' : 'border-transparent opacity-50 hover:opacity-100'}`}>
                             <img src={url} alt="preset" className="w-full aspect-square object-cover" />
                           </button>
                         ))}
@@ -540,29 +586,31 @@ function App() {
                   </div>
                 ) : (
                   <section className="bg-white dark:bg-[#04211C] p-8 rounded-[2rem] border border-emerald-100 dark:border-emerald-500/10 shadow-sm">
-                    <h3 className="text-xl font-black font-display mb-6 dark:text-white">Earnings & Referral</h3>
+                    <h3 className="text-xl font-black font-display mb-6 dark:text-white">{t.referral}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                        <div className="space-y-4">
-                          <label className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 block">Your Referral Link</label>
+                          <label className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 block">{t.referralLink}</label>
                           <div className="flex gap-2">
                              <div className="flex-1 bg-gray-50 dark:bg-emerald-500/5 px-4 py-3 rounded-xl text-xs font-mono dark:text-white truncate border dark:border-emerald-500/10">
                                 {account ? `${window.location.origin}${window.location.pathname}?ref=${account}` : '...'}
                              </div>
-                             <button onClick={copyRefLink} className="px-4 py-3 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-colors">{t.copyLink}</button>
+                             <button onClick={copyRefLink} className="px-4 py-3 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-colors shadow-md">{t.copyLink}</button>
                           </div>
+                          <p className="text-[9px] font-bold text-emerald-800/30 uppercase tracking-widest">{t.referralBonus}</p>
                        </div>
-                       <div className="p-6 rounded-2xl bg-[#04211C] text-white shadow-xl">
+                       <div className="p-6 rounded-2xl bg-[#04211C] text-white shadow-xl relative overflow-hidden group">
+                          <div className="absolute -top-12 -right-12 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all duration-500" />
                           <div className="flex justify-between items-center mb-6">
                              <div>
                                <span className="text-[9px] font-black uppercase tracking-widest opacity-40 block mb-1">Total Earned</span>
-                               <span className="text-2xl font-black">{referralBalance.total.toFixed(2)} M-USDT</span>
+                               <span className="text-2xl font-black font-display tracking-tight">{referralBalance.total.toFixed(2)} M-USDT</span>
                              </div>
                              <div className="text-right">
                                <span className="text-[9px] font-black uppercase tracking-widest opacity-40 block mb-1">{t.available}</span>
-                               <span className="text-xl font-black text-emerald-400">{referralBalance.available.toFixed(2)} M-USDT</span>
+                               <span className="text-xl font-black text-emerald-400 font-display tracking-tight">{referralBalance.available.toFixed(2)} M-USDT</span>
                              </div>
                           </div>
-                          <PrimaryButton variant="success" disabled={referralBalance.available <= 0}>{t.claimAll}</PrimaryButton>
+                          <PrimaryButton onClick={handleClaimAllRewards} variant="success" disabled={referralBalance.available <= 0}>{t.claimAll}</PrimaryButton>
                        </div>
                     </div>
                   </section>
@@ -580,7 +628,7 @@ function App() {
           <div className="relative z-10 w-full max-w-4xl bg-white dark:bg-[#04211C] rounded-[2rem] md:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
             <div className="p-6 md:p-12 border-b dark:border-emerald-500/10 flex items-center justify-between">
               <div><h2 className="text-2xl md:text-3xl font-black font-display text-[#04211C] dark:text-white">{t.howItWorks}</h2><p className="text-xs font-bold text-emerald-800/40 dark:text-emerald-400/40 uppercase tracking-widest mt-1">Platform Guide & Rules</p></div>
-              <button onClick={() => setShowGuideModal(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 hover:bg-emerald-100 transition-colors"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+              <button onClick={() => setShowGuideModal(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 hover:bg-emerald-100 transition-colors shadow-sm"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             </div>
             <div className="flex-1 overflow-y-auto p-6 md:p-12 space-y-12 scrollbar-hide">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
