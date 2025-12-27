@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 
 export const COLORS = {
@@ -21,7 +22,7 @@ export const PREDICTION_CONFIG = {
 };
 
 export const MERLIN_NETWORK = {
-  chainId: '0x106888', // Updated Chain ID as per request
+  chainId: '0x6b4f', // Merlin Testnet Chain ID is 686868
   chainName: 'Merlin Testnet',
   nativeCurrency: {
     name: 'BTC',
@@ -32,34 +33,156 @@ export const MERLIN_NETWORK = {
   blockExplorerUrls: ['https://testnet-scan.merlinchain.io'],
 };
 
-export const CONTRACT_ADDRESS = "0x967aEC3276b63c5E2262da9641DB9dbeBB07dC0d";
-export const PAYOUT_WALLET_ADDRESS = "0x7777777777777777777777777777777777777777"; // Placeholder for Jackpot Payout Pool
-export const DEV_WALLET_ADDRESS = "0x12084B221d5d706Ff7DAfC9DEd39c23a65A7491c";
+// FIX: Added missing ICONS export to be consumed by App.tsx
+export const ICONS = {
+  Wallet: () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 10.5V6a2 2 0 00-2-2H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2v-4.5"/><path d="M22 12h-6a2 2 0 00-2 2v0a2 2 0 002 2h6v-4z"/></svg>),
+  Sparkles: () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10 3L8 8l-5 2 5 2 2 5 2-5 5-2-5-2-2-5zM18 13l-1.5 3-3 1.5 3 1.5L18 22l1.5-3 3-1.5-3-1.5-1.5-3z"/></svg>)
+};
+
+// IMPORTANT: Replace this with the address you get after deploying the new contract
+export const CONTRACT_ADDRESS = "YOUR_NEW_DEPLOYED_CONTRACT_ADDRESS_HERE";
 
 
 export const LOTTERY_ABI = [
-  // Read Functions
-  "function getJackpot() public view returns (uint256)",
-  "function getTicketsByOwner(address owner) public view returns (tuple(uint256 id, uint8[4] numbers, uint256 lotteryTimestamp, bool claimed)[] memory)",
-  
-  // Write Functions
-  "function mintTicket(uint8[4] memory numbers, uint256 lotteryTimestamp) public payable",
-  "function claimPrize(uint256 ticketId) public",
-
-  // Events
-  "event TicketMinted(address indexed owner, uint256 indexed ticketId, uint8[4] numbers, uint256 lotteryTimestamp)",
-  "event PrizeClaimed(address indexed owner, uint256 indexed ticketId, uint256 amount)"
+  {
+    "inputs": [
+      { "internalType": "address", "name": "initialOwner", "type": "address" },
+      { "internalType": "address", "name": "_devWallet", "type": "address" },
+      { "internalType": "uint256", "name": "_initialTicketPrice", "type": "uint256" },
+      { "internalType": "uint256", "name": "_initialReferralReward", "type": "uint256" }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "uint64", "name": "drawTimestamp", "type": "uint64" },
+      { "indexed": false, "internalType": "uint8[4]", "name": "winningNumbers", "type": "uint8[4]" },
+      { "indexed": false, "internalType": "uint256", "name": "jackpot", "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "winnerCount", "type": "uint256" }
+    ],
+    "name": "DrawSettled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "address", "name": "previousOwner", "type": "address" },
+      { "indexed": true, "internalType": "address", "name": "newOwner", "type": "address" }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "address", "name": "winner", "type": "address" },
+      { "indexed": true, "internalType": "uint256", "name": "ticketId", "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }
+    ],
+    "name": "PrizeClaimed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "address", "name": "referrer", "type": "address" },
+      { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }
+    ],
+    "name": "ReferralClaimed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "address", "name": "user", "type": "address" },
+      { "indexed": true, "internalType": "address", "name": "referrer", "type": "address" }
+    ],
+    "name": "ReferrerSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "address", "name": "buyer", "type": "address" },
+      { "indexed": true, "internalType": "uint256", "name": "ticketId", "type": "uint256" },
+      { "indexed": true, "internalType": "uint64", "name": "drawTimestamp", "type": "uint64" },
+      { "indexed": false, "internalType": "uint8[4]", "name": "numbers", "type": "uint8[4]" }
+    ],
+    "name": "TicketMinted",
+    "type": "event"
+  },
+  { "inputs": [{ "internalType": "uint256", "name": "ticketId", "type": "uint256" }], "name": "claimPrize", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+  { "inputs": [], "name": "claimReferralRewards", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+  { "inputs": [], "name": "devBps", "outputs": [{ "internalType": "uint16", "name": "", "type": "uint16" }], "stateMutability": "view", "type": "function" },
+  { "inputs": [], "name": "devWallet", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" },
+  {
+    "inputs": [{ "internalType": "uint64", "name": "", "type": "uint64" }],
+    "name": "draws",
+    "outputs": [
+      { "internalType": "uint256", "name": "jackpotTotal", "type": "uint256" },
+      { "internalType": "uint256", "name": "winnerCount", "type": "uint256" },
+      { "internalType": "uint256", "name": "prizePerWinner", "type": "uint256" },
+      { "internalType": "uint8[4]", "name": "winningNumbers", "type": "uint8[4]" },
+      { "internalType": "bool", "name": "settled", "type": "bool" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "user", "type": "address" }],
+    "name": "getTicketsByOwner",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "uint256", "name": "id", "type": "uint256" },
+          { "internalType": "address", "name": "owner", "type": "address" },
+          { "internalType": "uint8[4]", "name": "numbers", "type": "uint8[4]" },
+          { "internalType": "uint64", "name": "drawTimestamp", "type": "uint64" },
+          { "internalType": "bool", "name": "claimed", "type": "bool" }
+        ],
+        "internalType": "struct OnChainJackpot.Ticket[]", "name": "", "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view", "type": "function"
+  },
+  { "inputs": [{ "internalType": "uint256", "name": "ticketId", "type": "uint256" }], "name": "isWinningTicket", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "stateMutability": "view", "type": "function" },
+  { "inputs": [], "name": "jackpotBps", "outputs": [{ "internalType": "uint16", "name": "", "type": "uint16" }], "stateMutability": "view", "type": "function" },
+  { "inputs": [{ "internalType": "uint8[4]", "name": "numbers", "type": "uint8[4]" }, { "internalType": "uint64", "name": "drawTimestamp", "type": "uint64" }], "name": "mintTicket", "outputs": [], "stateMutability": "payable", "type": "function" },
+  { "inputs": [], "name": "nextTicketId", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
+  { "inputs": [], "name": "owner", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" },
+  { "inputs": [{ "internalType": "address", "name": "", "type": "address" }], "name": "referralBalances", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
+  { "inputs": [], "name": "referralReward", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
+  { "inputs": [{ "internalType": "address", "name": "", "type": "address" }], "name": "referrerOf", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" },
+  { "inputs": [], "name": "renounceOwnership", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+  {
+    "inputs": [
+      { "internalType": "uint64", "name": "drawTimestamp", "type": "uint64" },
+      { "internalType": "uint8[4]", "name": "winningNumbers", "type": "uint8[4]" },
+      { "internalType": "uint256", "name": "winnerCount", "type": "uint256" }
+    ],
+    "name": "settleDraw", "outputs": [], "stateMutability": "nonpayable", "type": "function"
+  },
+  { "inputs": [{ "internalType": "uint16", "name": "_jackpotBps", "type": "uint16" }, { "internalType": "uint16", "name": "_devBps", "type": "uint16" }], "name": "setFeeBps", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+  { "inputs": [{ "internalType": "address", "name": "ref", "type": "address" }], "name": "setReferrer", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+  { "inputs": [{ "internalType": "uint256", "name": "_newReward", "type": "uint256" }], "name": "setReferralReward", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+  { "inputs": [{ "internalType": "uint256", "name": "_newPrice", "type": "uint256" }], "name": "setTicketPrice", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "name": "tickets",
+    "outputs": [
+      { "internalType": "uint256", "name": "id", "type": "uint256" },
+      { "internalType": "address", "name": "owner", "type": "address" },
+      { "internalType": "uint8[4]", "name": "numbers", "type": "uint8[4]" },
+      { "internalType": "uint64", "name": "drawTimestamp", "type": "uint64" },
+      { "internalType": "bool", "name": "claimed", "type": "bool" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  { "inputs": [], "name": "ticketPrice", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
+  { "inputs": [{ "internalType": "address", "name": "newOwner", "type": "address" }], "name": "transferOwnership", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+  { "inputs": [{ "internalType": "address payable", "name": "to", "type": "address" }], "name": "withdrawStuckFunds", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+  { "stateMutability": "payable", "type": "receive" }
 ];
-
-
-export const ICONS = {
-  Check: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-  ),
-  Sparkles: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z"></path></svg>
-  ),
-  Wallet: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5z"></path><path d="M16 12h.01"></path></svg>
-  )
-};
