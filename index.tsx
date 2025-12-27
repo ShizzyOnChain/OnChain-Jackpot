@@ -37,22 +37,6 @@ const getWinningNumbersForSlot = (timestamp: number): number[] => {
   return result.sort((a, b) => a - b);
 };
 
-const getSimulatedWinnersForSlot = (timestamp: number): { address: string }[] => {
-    const seed = timestamp.toString();
-    let hash = 0;
-    for (let i = 0; i < seed.length; i++) {
-      hash = ((hash << 5) - hash) + seed.charCodeAt(i);
-      hash |= 0;
-    }
-    const winnerCount = Math.abs(hash) % 3;
-    if (winnerCount === 0) return [];
-    
-    return Array.from({ length: winnerCount }, (_, i) => {
-      let addrHash = (hash * (i + 1) * 1664525 + 1013904223) | 0;
-      return { address: '0x' + Math.abs(addrHash).toString(16).padStart(40, '0').slice(0, 40) };
-    });
-};
-
 // --- LOGO ---
 const Logo: React.FC<{ size?: number; opacity?: number }> = ({ size = 52, opacity = 1 }) => {
   const hexPoints = (cx: number, cy: number, r: number) => {
@@ -190,7 +174,7 @@ function App() {
       footer: "OnChain Prediction • Powered by MerlinChain • Verifiable Assets",
       step1Title: "Connect & Switch", step1Desc: "Connect your wallet and switch to MerlinChain Testnet.",
       step2Title: "Pick Your Numbers", step2Desc: "Select 4 numbers between 1-9. These will be encoded into your NFT metadata.",
-      step3Title: "Mint Your Entry", step3Desc: "Confirm the transaction to mint your unique NFT ticket. Price: 0.00005 BTC + Gas.",
+      step3Title: "Mint Your Entry", step3Desc: "Confirm the transaction to mint your unique NFT ticket. Price: 0.00005 BTC + Gas. (0.00004 BTC funds the jackpot, 0.00001 BTC supports development).",
       step4Title: "Claim the Jackpot", step4Desc: "If your NFT numbers match the daily prediction exactly, you can claim the jackpot prize pool!",
       rules: "Prediction Rules", rule1: "A prediction event occurs every 12 hours (00:00 & 12:00 UTC).",
       rule2: "Predictions use deterministic on-chain entropy to ensure fairness.",
@@ -202,7 +186,8 @@ function App() {
       winner: "Winner!", claimPrize: "Claim Prize", claimed: "Claimed", winningNums: "Winning Numbers", matching: "Matching",
       previousDrawings: "Previous Predictions", winnersList: "Winners", noWinners: "No winners for this draw.",
       verifyFairness: "Verify Fairness", fairnessCheck: "Fairness Check", onchainSeed: "On-Chain Seed",
-      hashingProcess: "Hashing Process", verifiedOutput: "Verified Output", verifiedOnchain: "Verified Fair & On-Chain"
+      hashingProcess: "Hashing Process", verifiedOutput: "Verified Output", verifiedOnchain: "Verified Fair & On-Chain",
+      noSettledPredictions: "No settled predictions yet. Results will appear here after the first draw concludes."
     },
     zh: {
       title: "链上大奖", connect: "连接", heroTitle: "链上每日预测",
@@ -219,7 +204,7 @@ function App() {
       footer: "链上预测 • 由 MerlinChain 提供支持 • 可验证资产",
       step1Title: "连接并切换", step1Desc: "连接您的钱包并切换到 MerlinChain 测试网。",
       step2Title: "选择号码", step2Desc: "在 1-9 之间选择 4 个数字。这些将编码到您的 NFT 元数据中。",
-      step3Title: "铸造投注", step3Desc: "确认交易以在链上铸造您唯一的 NFT 彩票。价格：0.00005 BTC + Gas。",
+      step3Title: "铸造投注", step3Desc: "确认交易以在链上铸造您唯一的 NFT 彩票。价格：0.00005 BTC + Gas。(0.00004 BTC 进入奖池, 0.00001 BTC 支持开发)。",
       step4Title: "领取大奖", step4Desc: "如果您的 NFT 号码与每日预测完全匹配，即可领取奖池奖金！",
       rules: "预测规则", rule1: "每 12 小时进行一次预测 (00:00 & 12:00 UTC)。",
       rule2: "预测使用确定的链上随机熵，确保公平性。",
@@ -231,7 +216,8 @@ function App() {
       winner: "中奖!", claimPrize: "领取奖金", claimed: "已领取", winningNums: "中奖号码", matching: "匹配",
       previousDrawings: "往期预测", winnersList: "中奖名单", noWinners: "本期无人中奖。",
       verifyFairness: "验证公平性", fairnessCheck: "公平性检查", onchainSeed: "链上种子",
-      hashingProcess: "哈希过程", verifiedOutput: "已验证输出", verifiedOnchain: "已验证公平上链"
+      hashingProcess: "哈希过程", verifiedOutput: "已验证输出", verifiedOnchain: "已验证公平上链",
+      noSettledPredictions: "尚无已结算的预测。首次开奖结束后，结果将显示在此处。"
     }
   };
 
@@ -354,20 +340,10 @@ function App() {
   }, [now.getUTCDate(), now.getUTCHours()]);
 
   const previousDraws = useMemo(() => {
-    const draws = [];
-    const d = new Date(now);
-    d.setUTCSeconds(0,0);
-    d.setUTCMinutes(0,0);
-    const h = d.getUTCHours();
-    if (h >= 12) d.setUTCHours(12); else d.setUTCHours(0);
-    if (d.getTime() > now.getTime()) d.setTime(d.getTime() - 12 * 60 * 60 * 1000);
-    
-    for (let i = 0; i < 4; i++) {
-      draws.push(d.getTime());
-      d.setTime(d.getTime() - 12 * 60 * 60 * 1000);
-    }
-    return draws;
-  }, [now.getUTCDate()]);
+    // This will be populated with real on-chain data in the future.
+    // For now, it's empty to reflect a fresh start.
+    return [];
+  }, []);
 
   const [selectedPredictionSlot, setSelectedPredictionSlot] = useState(predictionSlots[0]);
 
@@ -387,7 +363,17 @@ function App() {
   const runLivePredictionSequence = useCallback(async () => {
     setPredictionPhase(0);
     setLivePredictionNumbers([null, null, null, null]);
-    const finalNumbers = getWinningNumbersForSlot(previousDraws[0]);
+    
+    // In a real scenario, you would fetch the last settled draw time.
+    // For now, we'll simulate based on the most recent past draw time.
+    const lastDrawTime = new Date(now);
+    lastDrawTime.setUTCSeconds(0,0);
+    lastDrawTime.setUTCMinutes(0,0);
+    const h = lastDrawTime.getUTCHours();
+    if (h >= 12) lastDrawTime.setUTCHours(12); else lastDrawTime.setUTCHours(0);
+    if (lastDrawTime.getTime() >= now.getTime()) lastDrawTime.setTime(lastDrawTime.getTime() - 12 * 60 * 60 * 1000);
+
+    const finalNumbers = getWinningNumbersForSlot(lastDrawTime.getTime());
     for (let i = 1; i <= 4; i++) {
       await new Promise(r => setTimeout(r, 1200));
       setLivePredictionNumbers(prev => {
@@ -399,9 +385,9 @@ function App() {
     }
     await new Promise(r => setTimeout(r, 800));
     setPredictionPhase(5);
-  }, [previousDraws]);
+  }, [now]);
 
-  useEffect(() => { if (showResultsModal) runLivePredictionSequence(); }, [showResultsModal]);
+  useEffect(() => { if (showResultsModal) runLivePredictionSequence(); }, [showResultsModal, runLivePredictionSequence]);
 
   const switchNetwork = async () => {
     if (!window.ethereum) return;
@@ -445,6 +431,10 @@ function App() {
     if (!account) return connectWallet();
     if (!isCorrectChain) return switchNetwork();
     if (!provider || !contract) return;
+    if (selectedPredictionSlot < Date.now()) {
+      alert("This prediction slot has already passed and cannot be entered.");
+      return;
+    }
 
     setTxStatus('awaiting');
     try {
@@ -453,6 +443,9 @@ function App() {
         
         const ticketPrice = ethers.parseUnits(TICKET_PRICE_BTC.toString(), "ether"); 
 
+        // The full ticket price is sent to the smart contract. 
+        // The contract's internal logic is responsible for splitting the funds 
+        // (e.g., 0.00004 to payout wallet, 0.00001 to dev wallet).
         const tx = await contractWithSigner.mintTicket(
             selectedNumbers,
             Math.floor(selectedPredictionSlot / 1000),
@@ -693,31 +686,41 @@ function App() {
           <div className="lg:col-span-7 bg-white dark:bg-[#04211C] rounded-[2.5rem] border border-gray-100 dark:border-emerald-500/10 p-10 shadow-xl min-h-[400px]">
             <h2 className="text-2xl font-bold font-display dark:text-white mb-8">{t.previousDrawings}</h2>
             <div className="space-y-4">
-              {previousDraws.map(drawTime => {
-                const winningNumbers = getWinningNumbersForSlot(drawTime);
-                const winners = getSimulatedWinnersForSlot(drawTime);
-                return (
-                  <div key={drawTime} className="bg-gray-50 dark:bg-emerald-500/5 p-4 rounded-2xl border dark:border-emerald-500/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div>
-                      <p className="font-bold text-sm dark:text-white">{formatDate(drawTime)}</p>
-                      <p className="text-[10px] uppercase tracking-widest font-bold text-gray-400 dark:text-emerald-500/40">{formatTime(drawTime)}</p>
+              {previousDraws.length === 0 ? (
+                <div className="text-center py-12 px-6 rounded-2xl bg-gray-50 dark:bg-emerald-500/5 border border-gray-100 dark:border-emerald-500/10">
+                   <svg className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <h3 className="mt-4 text-sm font-semibold text-gray-800 dark:text-white">{t.noSettledPredictions}</h3>
+                </div>
+              ) : (
+                previousDraws.map(drawTime => {
+                  const winningNumbers = getWinningNumbersForSlot(drawTime);
+                  // Real winner data would be fetched here in a production app
+                  const winners: any[] = []; 
+                  return (
+                    <div key={drawTime} className="bg-gray-50 dark:bg-emerald-500/5 p-4 rounded-2xl border dark:border-emerald-500/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div>
+                        <p className="font-bold text-sm dark:text-white">{formatDate(drawTime)}</p>
+                        <p className="text-[10px] uppercase tracking-widest font-bold text-gray-400 dark:text-emerald-500/40">{formatTime(drawTime)}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        {winningNumbers.map((n, i) => (
+                           <div key={i} className="h-10 w-10 rounded-full border-2 border-emerald-200 bg-white dark:bg-emerald-500/10 dark:border-emerald-500/20 text-emerald-800 dark:text-white flex items-center justify-center font-black text-sm shadow-sm">{n}</div>
+                        ))}
+                      </div>
+                      <div className="text-center">
+                        <p className="font-black text-lg dark:text-white">{winners.length}</p>
+                        <p className="text-[9px] uppercase tracking-widest font-bold text-gray-400 dark:text-emerald-500/40">{t.winnersList}</p>
+                      </div>
+                      <button onClick={() => setShowVerifyModal({timestamp: drawTime, numbers: winningNumbers})} className="px-3 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/10 transition-colors flex items-center gap-2">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                          {t.verifyFairness}
+                      </button>
                     </div>
-                    <div className="flex gap-2">
-                      {winningNumbers.map((n, i) => (
-                         <div key={i} className="h-10 w-10 rounded-full border-2 border-emerald-200 bg-white dark:bg-emerald-500/10 dark:border-emerald-500/20 text-emerald-800 dark:text-white flex items-center justify-center font-black text-sm shadow-sm">{n}</div>
-                      ))}
-                    </div>
-                    <div className="text-center">
-                      <p className="font-black text-lg dark:text-white">{winners.length}</p>
-                      <p className="text-[9px] uppercase tracking-widest font-bold text-gray-400 dark:text-emerald-500/40">{t.winnersList}</p>
-                    </div>
-                    <button onClick={() => setShowVerifyModal({timestamp: drawTime, numbers: winningNumbers})} className="px-3 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/10 transition-colors flex items-center gap-2">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                        {t.verifyFairness}
-                    </button>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
 

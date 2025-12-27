@@ -33,6 +33,9 @@ export const MERLIN_NETWORK = {
 };
 
 export const CONTRACT_ADDRESS = "0x967aEC3276b63c5E2262da9641DB9dbeBB07dC0d";
+export const PAYOUT_WALLET_ADDRESS = "0x7777777777777777777777777777777777777777"; // Placeholder for Jackpot Payout Pool
+export const DEV_WALLET_ADDRESS = "0x12084B221d5d706Ff7DAfC9DEd39c23a65A7491c";
+
 
 export const LOTTERY_ABI = [
   // Read Functions
