@@ -81,16 +81,16 @@ const getWinningNumbersForSlot = (timestamp: number): number[] => {
 
 const Pill: React.FC<{ children: React.ReactNode; variant?: 'default' | 'gold' | 'mint' | 'danger' | 'info' | 'warning' }> = ({ children, variant = 'default' }) => {
   const styles = {
-    gold: { bg: "rgba(212, 175, 55, 0.15)", color: "#8b6508", border: "rgba(212, 175, 55, 0.4)" },
-    mint: { bg: "rgba(16, 185, 129, 0.1)", color: "#047857", border: "rgba(16, 185, 129, 0.2)" },
-    danger: { bg: "rgba(239, 68, 68, 0.1)", color: "#b91c1c", border: "rgba(239, 68, 68, 0.2)" },
-    warning: { bg: "rgba(245, 158, 11, 0.1)", color: "#b45309", border: "rgba(245, 158, 11, 0.2)" },
-    info: { bg: "rgba(59, 130, 246, 0.1)", color: "#1d4ed8", border: "rgba(59, 130, 246, 0.2)" },
+    gold: { bg: "rgba(212, 175, 55, 0.15)", color: "#d4af37", border: "rgba(212, 175, 55, 0.4)" },
+    mint: { bg: "rgba(16, 185, 129, 0.1)", color: "#10b981", border: "rgba(16, 185, 129, 0.2)" },
+    danger: { bg: "rgba(239, 68, 68, 0.1)", color: "#ef4444", border: "rgba(239, 68, 68, 0.2)" },
+    warning: { bg: "rgba(245, 158, 11, 0.1)", color: "#f59e0b", border: "rgba(245, 158, 11, 0.2)" },
+    info: { bg: "rgba(59, 130, 246, 0.1)", color: "#3b82f6", border: "rgba(59, 130, 246, 0.2)" },
     default: { bg: "rgba(127,230,195,0.14)", color: "#04211C", border: "rgba(127,230,195,0.55)" }
   };
   const s = styles[variant];
   return (
-    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider whitespace-nowrap dark:border-emerald-500/30" style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider whitespace-nowrap dark:border-emerald-500/30 ${variant === 'default' ? 'dark:text-emerald-400' : ''}`} style={{ background: s.bg, color: variant === 'default' ? undefined : s.color, border: `1px solid ${s.border}` }}>
       {children}
     </span>
   );
@@ -108,7 +108,7 @@ const PrimaryButton: React.FC<{ children: React.ReactNode; onClick?: () => void;
   };
   const s = getStyles();
   return (
-    <button disabled={disabled || loading} onClick={onClick} className={`w-full rounded-2xl px-4 py-3 text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2 dark:border-emerald-500/20 dark:text-emerald-50`} style={{ background: s.bg, color: s.color || 'white', border: s.border || 'none', boxShadow: s.shadow }}>
+    <button disabled={disabled || loading} onClick={onClick} className={`w-full rounded-2xl px-4 py-3 text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2 dark:border-emerald-500/20 dark:text-white ${variant === 'outline' ? 'dark:border-white/20' : ''}`} style={{ background: s.bg, color: variant === 'outline' ? undefined : 'white', border: s.border || 'none', boxShadow: s.shadow }}>
       {loading ? <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" /> : children}
     </button>
   );
@@ -117,7 +117,7 @@ const PrimaryButton: React.FC<{ children: React.ReactNode; onClick?: () => void;
 const TimeDisplay = ({ value, label }: { value: string, label: string }) => (
   <div className="flex flex-col items-center">
     <div className="text-4xl font-black font-display tracking-tighter text-[#04211C] dark:text-white">{value}</div>
-    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600/50 dark:text-emerald-400">{label}</span>
+    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600/50 dark:text-white/60">{label}</span>
   </div>
 );
 
@@ -569,7 +569,7 @@ function App() {
               <label className="text-[10px] font-black uppercase opacity-30 dark:opacity-40 tracking-widest mb-4 block dark:text-emerald-400">{t.batchMint}</label>
               <div className="flex p-1 bg-gray-50 dark:bg-emerald-500/5 rounded-2xl border border-gray-100 dark:border-emerald-500/10">
                 {[1, 5, 10, 20, 50].map(q => (
-                  <button key={q} onClick={() => setMintQuantity(q)} className={`flex-1 py-3 text-xs font-black rounded-xl transition-all ${mintQuantity === q ? 'bg-white dark:bg-emerald-500 shadow-md text-[#04211C] dark:text-[#04211C]' : 'text-gray-400 dark:text-emerald-500/40 hover:text-gray-600 dark:hover:text-emerald-50'}`}>
+                  <button key={q} onClick={() => setMintQuantity(q)} className={`flex-1 py-3 text-xs font-black rounded-xl transition-all ${mintQuantity === q ? 'bg-white dark:bg-emerald-500 shadow-md text-[#04211C] dark:text-[#04211C]' : 'text-gray-400 dark:text-white/60 hover:text-gray-600 dark:hover:text-white'}`}>
                     {q}x
                   </button>
                 ))}
@@ -584,13 +584,13 @@ function App() {
                 ))}
               </div>
               <div className="grid grid-cols-2 gap-3 mt-4">
-                <button onClick={handleShufflePick} className="py-3 px-4 border border-gray-100 dark:border-emerald-500/10 rounded-xl font-bold text-[10px] uppercase tracking-widest text-gray-400 dark:text-emerald-500/40 hover:bg-gray-50 dark:hover:bg-emerald-500/10 transition-all">{t.shuffle}</button>
+                <button onClick={handleShufflePick} className="py-3 px-4 border border-gray-100 dark:border-emerald-500/10 rounded-xl font-bold text-[10px] uppercase tracking-widest text-gray-400 dark:text-emerald-500/60 hover:bg-gray-50 dark:hover:bg-emerald-500/10 transition-all">{t.shuffle}</button>
                 <button onClick={handleAiPick} disabled={aiLoading} className="py-3 px-4 bg-violet-50 dark:bg-violet-500/10 text-violet-800 dark:text-violet-400 rounded-xl font-bold text-[10px] uppercase tracking-widest border border-violet-100 dark:border-violet-500/20 flex items-center justify-center gap-2 transition-all hover:bg-violet-100 dark:hover:bg-violet-500/20 disabled:opacity-50">
-                  {aiLoading ? <div className="h-3 w-3 border-2 border-violet-800 dark:border-violet-400 border-t-transparent rounded-full animate-spin" /> : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z"></path></svg>}
+                  {aiLoading ? <div className="h-3 w-3 border-2 border-violet-800 dark:border-violet-400 border-t-transparent rounded-full animate-spin" /> : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z"></path></svg>}
                   {t.aiLucky}
                 </button>
               </div>
-              {aiReason && (<div className="mt-4 p-4 rounded-2xl bg-violet-50/50 dark:bg-violet-950/20 border border-violet-100/50 dark:border-violet-500/20 text-violet-900/60 dark:text-violet-400/60 text-[10px] font-bold italic leading-relaxed animate-in fade-in">"{aiReason}"</div>)}
+              {aiReason && (<div className="mt-4 p-4 rounded-2xl bg-violet-50/50 dark:bg-violet-950/20 border border-violet-100/50 dark:border-violet-500/20 text-violet-900/60 dark:text-violet-200/60 text-[10px] font-bold italic leading-relaxed animate-in fade-in">"{aiReason}"</div>)}
             </div>
 
             <div className="bg-emerald-50 dark:bg-emerald-500/10 rounded-[2rem] p-8 border border-emerald-100 dark:border-emerald-500/20 mb-6">
@@ -629,23 +629,23 @@ function App() {
 
               <div className="pt-8 border-t border-emerald-50 dark:border-emerald-500/10">
                 <h3 className="text-xl font-black font-display mb-4 text-[#04211C] dark:text-white uppercase tracking-wider">{t.inDepthTitle}</h3>
-                <p className="text-sm font-medium text-emerald-900/60 dark:text-emerald-400/60 leading-relaxed max-w-3xl mb-8">{t.howItWorksDetails}</p>
+                <p className="text-sm font-medium text-emerald-900/60 dark:text-white/60 leading-relaxed max-w-3xl mb-8">{t.howItWorksDetails}</p>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
                   <div className="p-6 rounded-2xl bg-emerald-50/40 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-500/10">
                     <h4 className="font-black text-xs uppercase tracking-widest mb-3 text-emerald-800 dark:text-emerald-300">{t.transparency}</h4>
-                    <p className="text-xs font-medium text-emerald-900/60 dark:text-emerald-400/50 leading-relaxed">{t.transparencyDesc}</p>
+                    <p className="text-xs font-medium text-emerald-900/60 dark:text-white/60 leading-relaxed">{t.transparencyDesc}</p>
                   </div>
                   <div className="p-6 rounded-2xl bg-emerald-50/40 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-500/10">
                     <h4 className="font-black text-xs uppercase tracking-widest mb-3 text-emerald-800 dark:text-emerald-300">{t.riskTitle}</h4>
-                    <p className="text-xs font-medium text-emerald-900/60 dark:text-emerald-400/50 leading-relaxed">{t.riskDesc}</p>
+                    <p className="text-xs font-medium text-emerald-900/60 dark:text-white/60 leading-relaxed">{t.riskDesc}</p>
                   </div>
                 </div>
 
                 <h3 className="text-lg font-black font-display mb-6 uppercase tracking-wider text-[#04211C] dark:text-white">{t.rules}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[t.rule1, t.rule2, t.rule3, t.rule4].map((rule, idx) => (
-                    <div key={idx} className="flex gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-emerald-900/10 border border-gray-100 dark:border-emerald-500/10 text-sm font-medium text-emerald-900/60 dark:text-emerald-400/60 leading-relaxed">
+                    <div key={idx} className="flex gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-emerald-900/10 border border-gray-100 dark:border-emerald-500/10 text-sm font-medium text-emerald-900/60 dark:text-white/60 leading-relaxed">
                       <span className="flex-shrink-0 h-6 w-6 rounded-lg bg-emerald-900 dark:bg-emerald-500 text-white dark:text-[#04211C] flex items-center justify-center text-[10px] font-black">{idx + 1}</span>
                       {rule}
                     </div>
@@ -658,7 +658,7 @@ function App() {
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                   {t.disclaimer}
                 </h3>
-                <p className="text-xs font-medium text-red-900/70 dark:text-red-400/60 leading-relaxed max-w-3xl italic">
+                <p className="text-xs font-medium text-red-900/70 dark:text-red-300 leading-relaxed max-w-3xl italic">
                   {t.disclaimerText}
                 </p>
               </div>
@@ -671,7 +671,7 @@ function App() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
           <div className="absolute inset-0" onClick={() => setShowResultsModal(false)} />
           <div className="relative z-10 w-full max-w-lg bg-white dark:bg-[#04211C] rounded-[2.5rem] p-10 text-center shadow-2xl animate-in zoom-in-95 duration-300">
-             <button onClick={() => setShowResultsModal(false)} className="absolute top-6 right-6 p-2 text-gray-400 dark:text-emerald-500/40 hover:text-gray-600 dark:hover:text-white transition-all z-20"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+             <button onClick={() => setShowResultsModal(false)} className="absolute top-6 right-6 p-2 text-gray-400 dark:text-white/40 hover:text-gray-600 dark:hover:text-white transition-all z-20"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
              <h2 className="text-3xl font-black font-display text-[#04211C] dark:text-white mb-8">{t.latestResult}</h2>
              <div className="flex justify-center gap-4 mb-12 h-24">
                 {liveLotteryNumbers.map((n, i) => (
@@ -680,7 +680,7 @@ function App() {
                   </div>
                 ))}
              </div>
-             <p className="text-[10px] font-bold text-emerald-800/40 dark:text-emerald-500/30 uppercase tracking-widest">{lotteryPhase < 5 ? t.verifyingOnchain : t.revealSuccess}</p>
+             <p className="text-[10px] font-bold text-emerald-800/40 dark:text-white/30 uppercase tracking-widest">{lotteryPhase < 5 ? t.verifyingOnchain : t.revealSuccess}</p>
           </div>
         </div>
       )}
@@ -703,18 +703,18 @@ function App() {
                 <div className="flex-1 text-center md:text-left">
                   {isEditingProfile ? (
                     <div className="space-y-4">
-                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-emerald-800/40 dark:text-emerald-500/40 tracking-widest block">{t.username}</label><input className="px-4 py-2 border dark:border-emerald-500/20 dark:bg-emerald-500/5 rounded-xl font-bold w-full dark:text-white" value={profile.username} onChange={e => setProfile({...profile, username: e.target.value})} /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-emerald-800/40 dark:text-emerald-500/40 tracking-widest block">Choose Avatar</label>
+                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-emerald-800/40 dark:text-white/40 tracking-widest block">{t.username}</label><input className="px-4 py-2 border dark:border-emerald-500/20 dark:bg-emerald-500/5 rounded-xl font-bold w-full dark:text-white" value={profile.username} onChange={e => setProfile({...profile, username: e.target.value})} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-emerald-800/40 dark:text-white/40 tracking-widest block">Choose Avatar</label>
                         <div className="flex gap-2 flex-wrap">
                           {PRELOADED_AVATARS.map((url, i) => (
                             <button key={i} onClick={() => setProfile({...profile, avatarUrl: url})} className={`h-12 w-12 rounded-full overflow-hidden border-2 transition-all ${profile.avatarUrl === url ? 'border-emerald-600 dark:border-emerald-400 scale-110 shadow-md' : 'border-emerald-100 dark:border-emerald-500/10 opacity-50'}`}><img src={url} className="w-full h-full object-cover" /></button>
                           ))}
                         </div>
                       </div>
-                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-emerald-800/40 dark:text-emerald-500/40 tracking-widest block">{t.bio}</label><textarea className="px-4 py-2 border dark:border-emerald-500/20 dark:bg-emerald-500/5 rounded-xl text-sm w-full dark:text-white" value={profile.bio} onChange={e => setProfile({...profile, bio: e.target.value})} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-emerald-800/40 dark:text-white/40 tracking-widest block">{t.bio}</label><textarea className="px-4 py-2 border dark:border-emerald-500/20 dark:bg-emerald-500/5 rounded-xl text-sm w-full dark:text-white" value={profile.bio} onChange={e => setProfile({...profile, bio: e.target.value})} /></div>
                     </div>
                   ) : (
-                    <><h2 className="text-3xl font-black font-display text-[#04211C] dark:text-white">{profile.username}</h2><p className="text-sm font-bold text-[#0D6B58]/40 dark:text-emerald-400/40 uppercase tracking-widest mt-1 mb-4 font-mono">{account}</p><p className="text-sm text-gray-500 dark:text-emerald-400/60">{profile.bio}</p></>
+                    <><h2 className="text-3xl font-black font-display text-[#04211C] dark:text-white">{profile.username}</h2><p className="text-sm font-bold text-[#0D6B58]/40 dark:text-white/30 uppercase tracking-widest mt-1 mb-4 font-mono">{account}</p><p className="text-sm text-gray-500 dark:text-white/60">{profile.bio}</p></>
                   )}
                 </div>
               </div>
@@ -729,11 +729,11 @@ function App() {
                 <div className="flex flex-col lg:flex-row gap-12 items-start relative z-10">
                   <div className="flex-1 w-full">
                     <h3 className="text-xl font-black font-display mb-2 dark:text-white">{t.earningsSummary}</h3>
-                    <p className="text-xs font-bold text-emerald-800/40 dark:text-emerald-500/30 uppercase tracking-widest mb-8">{t.referralBonus}</p>
+                    <p className="text-xs font-bold text-emerald-800/40 dark:text-white/30 uppercase tracking-widest mb-8">{t.referralBonus}</p>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                        <div className="bg-gray-50 dark:bg-emerald-500/5 border border-gray-100 dark:border-emerald-500/10 p-6 rounded-2xl">
-                          <span className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 dark:text-emerald-500/30 block mb-2">{t.totalEarnings}</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 dark:text-white/30 block mb-2">{t.totalEarnings}</span>
                           <div className="flex items-baseline gap-2"><span className="text-3xl font-black text-[#04211C] dark:text-white">{referralBalance.total.toFixed(2)}</span><span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">M-USDT</span></div>
                        </div>
                        <div className="bg-emerald-900 dark:bg-emerald-500 p-6 rounded-2xl text-white dark:text-[#04211C] shadow-xl flex flex-col justify-between">
@@ -746,7 +746,7 @@ function App() {
                     </div>
 
                     <div className="space-y-4">
-                      <label className="text-[10px] font-black uppercase text-emerald-800/40 dark:text-emerald-500/40 tracking-widest block">{t.referral}</label>
+                      <label className="text-[10px] font-black uppercase text-emerald-800/40 dark:text-white/40 tracking-widest block">{t.referral}</label>
                       <div className="flex gap-3"><div className="flex-1 bg-gray-50 dark:bg-emerald-500/5 border border-emerald-50 dark:border-emerald-500/10 px-4 py-3 rounded-xl text-xs font-mono dark:text-white truncate">{account ? `${window.location.origin}${window.location.pathname}?ref=${account}` : '...'}</div><button onClick={copyRefLink} className="bg-emerald-600 dark:bg-emerald-500 text-white dark:text-[#04211C] px-6 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-emerald-700 dark:hover:bg-emerald-400 transition-colors">{t.copyLink}</button></div>
                     </div>
                   </div>
@@ -755,7 +755,7 @@ function App() {
               
               <section>
                 <h3 className="text-xl font-black font-display mb-8 dark:text-white">{t.myTickets} ({tickets.length})</h3>
-                {tickets.length === 0 ? (<div className="py-20 text-center border-2 border-dashed rounded-[2rem] border-emerald-100 dark:border-emerald-500/20 text-emerald-900/40 dark:text-emerald-500/20 font-bold uppercase tracking-widest bg-white dark:bg-[#04211C]">NO ENTRIES FOUND</div>) : (
+                {tickets.length === 0 ? (<div className="py-20 text-center border-2 border-dashed rounded-[2rem] border-emerald-100 dark:border-emerald-500/20 text-emerald-900/40 dark:text-white/20 font-bold uppercase tracking-widest bg-white dark:bg-[#04211C]">NO ENTRIES FOUND</div>) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {tickets.map(ticket => {
                       const winningNums = getWinningNumbersForSlot(ticket.targetLottery);
@@ -764,7 +764,7 @@ function App() {
                         <div key={ticket.id} className={`bg-white dark:bg-[#04211C] rounded-[2.5rem] border overflow-hidden p-6 transition-all ${isWinner ? 'border-amber-400 shadow-[0_10px_30px_rgba(212,175,55,0.15)] ring-2 ring-amber-400/20' : 'border-emerald-50 dark:border-emerald-500/10 shadow-sm hover:-translate-y-1'}`}>
                           <div className="flex justify-between items-center mb-6"><span className="text-[10px] font-black opacity-30 dark:opacity-40 uppercase tracking-widest dark:text-emerald-400">ID: {ticket.id}</span><Pill variant={isWinner ? 'gold' : 'mint'}>{isWinner ? 'WINNER' : 'VERIFIED'}</Pill></div>
                           <div className="flex gap-2 justify-center mb-6">{ticket.numbers.map((n: number, i: number) => (<div key={i} className={`h-12 w-12 rounded-2xl flex items-center justify-center text-lg font-black ${isWinner ? 'bg-amber-50 dark:bg-amber-500/10 border-2 border-amber-200 dark:border-amber-500/30 text-amber-900 dark:text-amber-400' : 'bg-emerald-50 dark:bg-emerald-500/5 border-2 border-emerald-100 dark:border-emerald-500/10 text-emerald-900 dark:text-white'}`}>{n}</div>))}</div>
-                          <div className="pt-4 border-t dark:border-emerald-500/10 text-[10px] font-bold text-gray-400 dark:text-emerald-500/30 uppercase tracking-widest text-center mb-4">{new Date(ticket.targetLottery).toLocaleDateString()} AT {pad2(new Date(ticket.targetLottery).getUTCHours())}:00 UTC</div>
+                          <div className="pt-4 border-t dark:border-emerald-500/10 text-[10px] font-bold text-gray-400 dark:text-white/30 uppercase tracking-widest text-center mb-4">{new Date(ticket.targetLottery).toLocaleDateString()} AT {pad2(new Date(ticket.targetLottery).getUTCHours())}:00 UTC</div>
                           {isWinner && !ticket.claimed && (<PrimaryButton onClick={() => handleClaim(ticket.id)} variant="gold">{t.claimPrize}</PrimaryButton>)}
                           {ticket.claimed && (<div className="w-full py-3 bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 rounded-2xl text-center text-xs font-black uppercase tracking-widest border border-emerald-200 dark:border-emerald-500/20">{t.claimed}</div>)}
                         </div>
@@ -779,7 +779,7 @@ function App() {
       )}
       
       <footer className="max-w-7xl mx-auto px-8 py-20 border-t border-emerald-100 dark:border-emerald-500/10 text-center transition-colors">
-        <p className="text-[10px] font-black text-emerald-900/20 dark:text-emerald-500/10 uppercase tracking-[0.3em]">{t.footer}</p>
+        <p className="text-[10px] font-black text-emerald-900/20 dark:text-white/10 uppercase tracking-[0.3em]">{t.footer}</p>
       </footer>
     </div>
   );
@@ -790,7 +790,7 @@ function Step({ num, title, desc, isDark }: { num: number, title: string, desc: 
     <div className="flex flex-col items-center text-center">
       <div className="h-12 w-12 rounded-2xl bg-emerald-100 dark:bg-emerald-500 text-emerald-800 dark:text-[#04211C] flex items-center justify-center font-black text-xl mb-4">{num}</div>
       <h4 className="font-bold mb-2 text-sm text-[#04211C] dark:text-white">{title}</h4>
-      <p className="text-[11px] text-emerald-900/60 dark:text-emerald-400/40 leading-relaxed font-medium">{desc}</p>
+      <p className="text-[11px] text-emerald-900/60 dark:text-white/40 leading-relaxed font-medium">{desc}</p>
     </div>
   );
 }
