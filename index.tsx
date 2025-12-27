@@ -317,15 +317,35 @@ function App() {
 
   useEffect(() => { if (showResultsModal) runLiveLotterySequence(); }, [showResultsModal]);
 
+  const switchNetwork = async () => {
+    if (!window.ethereum) return;
+    try {
+      await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: MERLIN_NETWORK.chainId }] });
+    } catch (e: any) {
+      if (e.code === 4902) await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [MERLIN_NETWORK] });
+    }
+  };
+
   const connectWallet = async () => {
     if (window.ethereum) {
       try {
         setIsConnecting(true);
+        // Request accounts, which prompts the user to connect.
         const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        
         if (accs.length > 0) {
           setAccount(accs[0]);
           const cid = await window.ethereum.request({ method: 'eth_chainId' });
           setChainId(cid);
+
+          // After connecting, check if it's the correct network.
+          // Use the same logic as isCorrectChain for consistency.
+          const currentHexChainId = cid.startsWith('0x') ? cid.toLowerCase() : `0x${parseInt(cid).toString(16)}`;
+          
+          // If not on Merlin Testnet, prompt user to switch.
+          if (currentHexChainId !== MERLIN_NETWORK.chainId.toLowerCase()) {
+            await switchNetwork();
+          }
         }
       } catch (e) { 
         console.error("Wallet connection failed", e); 
@@ -334,15 +354,6 @@ function App() {
       }
     } else {
       alert("Please install MetaMask to participate in the OnChain Lottery.");
-    }
-  };
-
-  const switchNetwork = async () => {
-    if (!window.ethereum) return;
-    try {
-      await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: MERLIN_NETWORK.chainId }] });
-    } catch (e: any) {
-      if (e.code === 4902) await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [MERLIN_NETWORK] });
     }
   };
 
