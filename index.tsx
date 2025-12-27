@@ -282,14 +282,28 @@ function App() {
 
   useEffect(() => { if (showResultsModal) runLiveLotterySequence(); }, [showResultsModal]);
 
-  const connectWallet = async () => {
-    if (window.ethereum) {
-      try {
-        const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        setAccount(accs[0]);
-      } catch (e) { console.error(e); }
-    } else alert("Install MetaMask");
-  };
+const connectWallet = async () => {
+  if (!window.ethereum) {
+    alert("MetaMask not detected. Open this site in a browser with MetaMask.");
+    return;
+  }
+  try {
+    const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    const first = accs?.[0] || null;
+    if (!first) {
+      alert("No wallet account returned.");
+      return;
+    }
+    setAccount(first);
+
+    const cid = await window.ethereum.request({ method: 'eth_chainId' });
+    setChainId(cid);
+  } catch (e: any) {
+    console.error(e);
+    alert(e?.message || "Wallet connection failed");
+  }
+};
+
 
   const switchNetwork = async () => {
     if (!window.ethereum) return;
