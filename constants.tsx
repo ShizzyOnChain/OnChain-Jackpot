@@ -21,15 +21,15 @@ export const LOTTERY_CONFIG = {
 };
 
 export const MERLIN_NETWORK = {
-  chainId: '0x1068', // 4200 in decimal
-  chainName: 'Merlin Mainnet',
+  chainId: '0xa7a18', // 686868 in decimal
+  chainName: 'Merlin Testnet',
   nativeCurrency: {
     name: 'BTC',
     symbol: 'BTC',
     decimals: 18,
   },
-  rpcUrls: ['https://rpc.merlinchain.io'],
-  blockExplorerUrls: ['https://scan.merlinchain.io'],
+  rpcUrls: ['https://testnet-rpc.merlinchain.io'],
+  blockExplorerUrls: ['https://testnet-scan.merlinchain.io'],
 };
 
 export const ICONS = {
