@@ -21,7 +21,7 @@ export const LOTTERY_CONFIG = {
 };
 
 export const MERLIN_NETWORK = {
-  chainId: '0xa7a18', // 686868 in decimal
+  chainId: '0x106888', // Updated Chain ID as per request
   chainName: 'Merlin Testnet',
   nativeCurrency: {
     name: 'BTC',

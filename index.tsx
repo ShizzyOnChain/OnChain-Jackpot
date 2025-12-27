@@ -1,3 +1,4 @@
+
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import ReactDOM from "react-dom/client";
 import { MERLIN_NETWORK } from "./constants";
@@ -129,6 +130,7 @@ function App() {
   const [now, setNow] = useState(new Date());
   const [txStatus, setTxStatus] = useState<'idle' | 'awaiting' | 'mining' | 'success' | 'error'>('idle');
   const [isConnecting, setIsConnecting] = useState(false);
+  const [claimStatus, setClaimStatus] = useState<Record<string, 'idle' | 'claiming' | 'success'>>({});
 
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
@@ -171,7 +173,8 @@ function App() {
       rule4: "Referral fees (0.02 M-USDT) are paid instantly upon successful minting.",
       disclaimer: "Legal Disclaimer", disclaimerText: "OnChain Jackpot is an experimental verifiable game of chance. Participating in lotteries involves financial risk.",
       available: "Available to Claim", claimAll: "Claim All Rewards", editProfile: "Edit Profile",
-      uploadAvatar: "Upload Image", bioLabel: "Bio / Motto", nameLabel: "Display Name"
+      uploadAvatar: "Upload Image", bioLabel: "Bio / Motto", nameLabel: "Display Name",
+      winner: "Winner!", claimPrize: "Claim Prize", claimed: "Claimed", winningNums: "Winning Numbers", matching: "Matching"
     },
     zh: {
       title: "链上大奖", connect: "连接", heroTitle: "链上每日彩票",
@@ -196,7 +199,8 @@ function App() {
       rule4: "成功铸造后，推荐费 (0.02 M-USDT) 将立即支付。",
       disclaimer: "法律声明", disclaimerText: "OnChain Jackpot 是一款实验性的几率游戏。参与彩票涉及财务风险。",
       available: "可领取金额", claimAll: "领取所有奖励", editProfile: "编辑资料",
-      uploadAvatar: "上传图片", bioLabel: "个人简介", nameLabel: "显示名称"
+      uploadAvatar: "上传图片", bioLabel: "个人简介", nameLabel: "显示名称",
+      winner: "中奖!", claimPrize: "领取奖金", claimed: "已领取", winningNums: "中奖号码", matching: "匹配"
     }
   };
 
@@ -212,7 +216,11 @@ function App() {
       const stored = localStorage.getItem(`profile_${account}`);
       if (stored) setProfile(JSON.parse(stored));
       const tks = localStorage.getItem(`tickets_${account}`);
-      if (tks) setTickets(JSON.parse(tks));
+      if (tks) {
+        const parsedTickets = JSON.parse(tks);
+        const updatedTickets = parsedTickets.map((t: any) => ({ ...t, claimed: t.claimed || false }));
+        setTickets(updatedTickets);
+      }
     }
   }, [account]);
 
@@ -357,7 +365,8 @@ function App() {
       id: Math.random().toString(36).substring(7).toUpperCase(),
       numbers: [...selectedNumbers],
       slot: selectedSlot,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      claimed: false
     }];
 
     const updated = [...newTks, ...tickets];
@@ -405,6 +414,17 @@ function App() {
     setReferralBalance(prev => ({ ...prev, available: 0 }));
   };
 
+  const handleClaim = async (ticketId: string) => {
+    if (!account) { await connectWallet(); return; }
+    if (!isCorrectChain) { await switchNetwork(); return; }
+    setClaimStatus(prev => ({ ...prev, [ticketId]: 'claiming' }));
+    await new Promise(r => setTimeout(r, 2000)); // Simulate claim
+    const updatedTickets = tickets.map(t => t.id === ticketId ? { ...t, claimed: true } : t);
+    setTickets(updatedTickets);
+    if(account) localStorage.setItem(`tickets_${account}`, JSON.stringify(updatedTickets));
+    setClaimStatus(prev => ({ ...prev, [ticketId]: 'success' }));
+  };
+
   const formatDate = (ts: number | string) => {
     const d = new Date(ts);
     const locale = lang === 'en' ? 'en-US' : 'zh-CN';
@@ -414,6 +434,60 @@ function App() {
   const formatTime = (ts: number | string) => {
     const d = new Date(ts);
     return `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())} UTC`;
+  };
+
+  // Fix: Changed component signature to React.FC to correctly handle React's special `key` prop and resolve TypeScript error.
+  const TicketCard: React.FC<{ ticket: any }> = ({ ticket }) => {
+      const isPast = ticket.slot < Date.now();
+      const winningNumbers = isPast ? getWinningNumbersForSlot(ticket.slot) : null;
+      
+      const isWinner = useMemo(() => {
+          if (!winningNumbers) return false;
+          return JSON.stringify([...ticket.numbers].sort()) === JSON.stringify([...winningNumbers].sort());
+      }, [ticket.numbers, winningNumbers]);
+
+      const matchingNumbers = useMemo(() => {
+          if (!winningNumbers) return 0;
+          return ticket.numbers.filter((n: number) => winningNumbers.includes(n)).length;
+      }, [ticket.numbers, winningNumbers]);
+
+      return (
+          <div className={`bg-white dark:bg-[#031814] p-6 rounded-2xl border ${isWinner && !ticket.claimed ? 'border-yellow-400 shadow-lg' : 'dark:border-emerald-500/10'}`}>
+              <div className="flex justify-between items-center mb-4">
+                  <span className="text-[10px] font-black opacity-30 dark:text-white/30">#{ticket.id}</span>
+                  {isWinner && <Pill variant="gold">{t.winner}</Pill>}
+                  {isPast && !isWinner && <Pill variant="danger">{matchingNumbers} {t.matching}</Pill>}
+                  {!isPast && <Pill variant="mint">{formatDate(ticket.slot)}</Pill>}
+              </div>
+              <div className="flex gap-2 justify-center mb-4">
+                  {ticket.numbers.map((n: number, i: number) => (
+                      <div key={i} className={`h-10 w-10 rounded-lg flex items-center justify-center font-black dark:text-white border ${winningNumbers && winningNumbers.includes(n) ? 'bg-emerald-200 dark:bg-emerald-500 ring-2 ring-emerald-400' : 'bg-white dark:bg-black/20'} dark:border-white/10`}>{n}</div>
+                  ))}
+              </div>
+
+              {isWinner && (
+                  <div className="mt-4">
+                      {ticket.claimed ? (
+                          <div className="py-2 text-center rounded-lg bg-gray-100 dark:bg-gray-700 text-xs font-bold uppercase tracking-wider text-gray-400">{t.claimed}</div>
+                      ) : (
+                          <PrimaryButton onClick={() => handleClaim(ticket.id)} loading={claimStatus[ticket.id] === 'claiming'} variant="gold">
+                              {t.claimPrize}
+                          </PrimaryButton>
+                      )}
+                  </div>
+              )}
+              {isPast && !isWinner && (
+                   <div className="mt-4 text-center">
+                      <p className="text-[9px] font-bold text-emerald-800/30 dark:text-white/30 uppercase tracking-widest mb-1">{t.winningNums}</p>
+                      <div className="flex gap-1 justify-center">
+                          {winningNumbers?.map((n, i) => (
+                              <div key={i} className="h-6 w-6 rounded-md bg-gray-100 dark:bg-white/10 text-emerald-700 dark:text-emerald-400 flex items-center justify-center text-xs font-bold">{n}</div>
+                          ))}
+                      </div>
+                  </div>
+              )}
+          </div>
+      );
   };
 
   return (
@@ -620,35 +694,47 @@ function App() {
                     </div>
                   </div>
                 ) : (
-                  <section className="bg-white dark:bg-[#04211C] p-8 rounded-[2rem] border border-emerald-100 dark:border-emerald-500/10 shadow-sm">
-                    <h3 className="text-xl font-black font-display mb-6 dark:text-white">{t.referral}</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                       <div className="space-y-4">
-                          <label className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 block">Your Referral Link</label>
-                          <div className="flex gap-2">
-                             <div className="flex-1 bg-gray-50 dark:bg-emerald-500/5 px-4 py-3 rounded-xl text-xs font-mono dark:text-white truncate border dark:border-emerald-500/10">
-                                {account ? `${window.location.origin}${window.location.pathname}?ref=${account}` : '...'}
-                             </div>
-                             <button onClick={copyRefLink} className="px-4 py-3 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-colors shadow-md">{t.copyLink}</button>
-                          </div>
-                          <p className="text-[9px] font-bold text-emerald-800/30 uppercase tracking-widest">{t.referralBonus}</p>
-                       </div>
-                       <div className="p-6 rounded-2xl bg-[#04211C] text-white shadow-xl relative overflow-hidden group">
-                          <div className="absolute -top-12 -right-12 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all duration-500" />
-                          <div className="flex justify-between items-center mb-6">
-                             <div>
-                               <span className="text-[9px] font-black uppercase tracking-widest opacity-40 block mb-1">Total Earned</span>
-                               <span className="text-2xl font-black font-display tracking-tight">{referralBalance.total.toFixed(2)} M-USDT</span>
-                             </div>
-                             <div className="text-right">
-                               <span className="text-[9px] font-black uppercase tracking-widest opacity-40 block mb-1">{t.available}</span>
-                               <span className="text-xl font-black text-emerald-400 font-display tracking-tight">{referralBalance.available.toFixed(2)} M-USDT</span>
-                             </div>
-                          </div>
-                          <PrimaryButton onClick={handleClaimAllRewards} variant="success" disabled={referralBalance.available <= 0}>{t.claimAll}</PrimaryButton>
-                       </div>
-                    </div>
-                  </section>
+                  <div className="space-y-8">
+                    <section className="bg-white dark:bg-[#04211C] p-8 rounded-[2rem] border border-emerald-100 dark:border-emerald-500/10 shadow-sm">
+                      <h3 className="text-xl font-black font-display mb-6 dark:text-white">{t.referral}</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                         <div className="space-y-4">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 block">Your Referral Link</label>
+                            <div className="flex gap-2">
+                               <div className="flex-1 bg-gray-50 dark:bg-emerald-500/5 px-4 py-3 rounded-xl text-xs font-mono dark:text-white truncate border dark:border-emerald-500/10">
+                                  {account ? `${window.location.origin}${window.location.pathname}?ref=${account}` : '...'}
+                               </div>
+                               <button onClick={copyRefLink} className="px-4 py-3 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-colors shadow-md">{t.copyLink}</button>
+                            </div>
+                            <p className="text-[9px] font-bold text-emerald-800/30 uppercase tracking-widest">{t.referralBonus}</p>
+                         </div>
+                         <div className="p-6 rounded-2xl bg-[#04211C] text-white shadow-xl relative overflow-hidden group">
+                            <div className="absolute -top-12 -right-12 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all duration-500" />
+                            <div className="flex justify-between items-center mb-6">
+                               <div>
+                                 <span className="text-[9px] font-black uppercase tracking-widest opacity-40 block mb-1">Total Earned</span>
+                                 <span className="text-2xl font-black font-display tracking-tight">{referralBalance.total.toFixed(2)} M-USDT</span>
+                               </div>
+                               <div className="text-right">
+                                 <span className="text-[9px] font-black uppercase tracking-widest opacity-40 block mb-1">{t.available}</span>
+                                 <span className="text-xl font-black text-emerald-400 font-display tracking-tight">{referralBalance.available.toFixed(2)} M-USDT</span>
+                               </div>
+                            </div>
+                            <PrimaryButton onClick={handleClaimAllRewards} variant="success" disabled={referralBalance.available <= 0}>{t.claimAll}</PrimaryButton>
+                         </div>
+                      </div>
+                    </section>
+                    <section className="bg-white dark:bg-[#04211C] p-8 rounded-[2rem] border border-emerald-100 dark:border-emerald-500/10 shadow-sm">
+                      <h2 className="text-xl font-bold font-display dark:text-white">{t.myTickets} ({tickets.length})</h2>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+                        {tickets.length === 0 ? (
+                          <div className="col-span-full py-12 text-center opacity-30 uppercase tracking-widest text-xs font-black">No Tickets Found</div>
+                        ) : tickets.map(tk => (
+                          <TicketCard key={tk.id} ticket={tk} />
+                        ))}
+                      </div>
+                    </section>
+                  </div>
                 )}
               </div>
             )}
