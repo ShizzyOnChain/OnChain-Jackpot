@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import ReactDOM from "react-dom/client";
-import { GoogleGenAI, Type } from "@google/genai";
 
 // --- CONSTANTS ---
 const PRELOADED_AVATARS = [
@@ -17,49 +16,6 @@ const MERLIN_NETWORK = {
   nativeCurrency: { name: 'BTC', symbol: 'BTC', decimals: 18 },
   rpcUrls: ['https://rpc.merlinchain.io'],
   blockExplorerUrls: ['https://scan.merlinchain.io'],
-};
-
-// --- GEMINI SERVICE ---
-const getLuckyNumbers = async (profile?: { username: string; bio: string }): Promise<{ numbers: number[]; reason: string }> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  try {
-    const prompt = `Suggest 4 unique lucky lottery numbers between 1 and 9 for "${profile?.username || 'LuckyPlayer'}" (${profile?.bio || 'Blockchain Fan'}). 
-    Provide a fun, very short reason matching their vibe and on-chain destiny. Return as JSON.`;
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            numbers: { type: Type.ARRAY, items: { type: Type.INTEGER } },
-            reason: { type: Type.STRING },
-          },
-          required: ["numbers", "reason"],
-        },
-      },
-    });
-    
-    const data = JSON.parse(response.text || '{}');
-    return {
-      numbers: Array.isArray(data.numbers) ? data.numbers.slice(0, 4).map(Number).filter(n => n >= 1 && n <= 9) : [1, 2, 3, 4],
-      reason: data.reason || "The flash of entropy has chosen your path!"
-    };
-  } catch (e) {
-    console.warn("AI API Error, falling back to Local Quantum entropy:", e);
-    // Robust fallback to prevent "stuck" UI on Vercel
-    const fallbackNums = [];
-    while(fallbackNums.length < 4) {
-      const r = Math.floor(Math.random() * 9) + 1;
-      if(!fallbackNums.includes(r)) fallbackNums.push(r);
-    }
-    return { 
-      numbers: fallbackNums.sort((a, b) => a - b), 
-      reason: "The Local Quantum Engine has detected a cosmic shift in your favor. Your destiny is still valid." 
-    };
-  }
 };
 
 // --- UTILS ---
@@ -175,7 +131,7 @@ const translations = {
     disclaimer: "Legal Disclaimer", disclaimerText: "OnChain Jackpot is an experimental verifiable game of chance. Participating in lotteries involves financial risk. Digital assets are highly volatile.",
     latestResult: "Latest Result", settledMsg: "LOTTERY SUCCESSFULLY SETTLED",
     verifyingOnchain: "Verifying Onchain Entropy...", revealSuccess: "Settlement Complete",
-    aiLucky: "AI Flash Pick", days: "Days", hours: "Hours", minutes: "Minutes", seconds: "Seconds",
+    quantumPick: "Quantum Randomize", days: "Days", hours: "Hours", minutes: "Minutes", seconds: "Seconds",
     countdownTitle: "Next Lottery Countdown", countdownSub: "Reveal: 00:00 & 12:00 UTC",
     myTickets: "My NFT Entries", profile: "Profile", referral: "Referral & Rewards", logout: "Logout",
     save: "Save Changes", cancel: "Cancel", copyLink: "Copy Link", referralBonus: "EARN 0.02 M-USDT FOR EVERY NFT MINTED THROUGH YOUR LINK",
@@ -188,8 +144,7 @@ const translations = {
     howItWorksDetails: "Every 12 hours, the Onchain Daily Lottery settles. Winning numbers are derived from the blockhash of the target timestamp's block, ensuring zero human intervention. 88% of all ticket sales go directly into the Active Vault.",
     transparency: "Verified on MerlinChain", transparencyDesc: "All NFT tickets are ERC721 assets. You can verify your participation and the outcome directly on the blockchain explorer.",
     riskTitle: "Risk & Compliance", riskDesc: "Please participate responsibly. This platform is decentralized and automated. Ensure you are compliant with your local jurisdiction's regulations.",
-    claimAll: "Claim All Rewards", available: "Available to Claim",
-    aiInsight: "FLASH DESTINY INSIGHT", aiThinking: "Mining Entropy..."
+    claimAll: "Claim All Rewards", available: "Available to Claim"
   },
   zh: {
     title: "链上大奖", connect: "连接", heroTitle: "链上每日彩票",
@@ -211,7 +166,7 @@ const translations = {
     disclaimer: "法律声明", disclaimerText: "OnChain Jackpot 是一款实验性的几率游戏。参与彩票涉及财务风险。数字资产波动性极高。",
     latestResult: "最新开奖", settledMsg: "开奖已成功结算",
     verifyingOnchain: "验证链上数据...", revealSuccess: "结算完成",
-    aiLucky: "AI 极速挑选", days: "天", hours: "小时", minutes: "分钟", seconds: "秒",
+    quantumPick: "量子随机选择", days: "天", hours: "小时", minutes: "分钟", seconds: "秒",
     countdownTitle: "下次开奖倒计时", countdownSub: "开奖时间: 00:00 & 12:00 UTC",
     myTickets: "我的投注", profile: "个人中心", referral: "推荐奖励", logout: "断开连接",
     save: "保存修改", cancel: "取消", copyLink: "复制链接", referralBonus: "通过您的链接铸造的每个 NFT 均可赚取 0.02 M-USDT",
@@ -224,8 +179,7 @@ const translations = {
     howItWorksDetails: "每 12 小时结算一次。中奖号码源自目标时间戳区块的哈希值，确保零人工干预。所有门票销售的 88% 直接进入活跃保险库。",
     transparency: "在 MerlinChain 上验证", transparencyDesc: "所有 NFT 门票均为 ERC721 资产。您可以直接在区块链浏览器上验证您的参与情况和结果。",
     riskTitle: "风险与合规", riskDesc: "请负责任地参与。平台完全去中心化并自动化。请确保您符合当地关于数字资产的法律法规。",
-    claimAll: "领取所有奖励", available: "可领取金额",
-    aiInsight: "极速命运洞察", aiThinking: "正在提取熵值..."
+    claimAll: "领取所有奖励", available: "可领取金额"
   }
 };
 
@@ -247,8 +201,6 @@ function App() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [tickets, setTickets] = useState<any[]>([]);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiReason, setAiReason] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [profile, setProfile] = useState({
@@ -319,16 +271,12 @@ function App() {
     };
   }, [now, lotterySlots]);
 
-  // --- REVEAL SEQUENCE LOGIC FIX ---
   const runLiveLotterySequence = useCallback(async () => {
     if (isRevealing) return;
     setIsRevealing(true);
     setLotteryPhase(0);
     setLiveLotteryNumbers([null, null, null, null]);
-    
-    // Derived from the most recent 00/12 window
     const finalNumbers = getWinningNumbersForSlot(lastSettledLotteryTime);
-    
     for (let i = 1; i <= 4; i++) {
       await new Promise(r => setTimeout(r, 1200));
       setLiveLotteryNumbers(prev => {
@@ -347,7 +295,6 @@ function App() {
     if (showResultsModal) {
       runLiveLotterySequence();
     } else {
-      // Reset when closed
       setLiveLotteryNumbers([null, null, null, null]);
       setLotteryPhase(0);
     }
@@ -373,14 +320,13 @@ function App() {
     } else alert("Please install MetaMask");
   };
 
-  const handleAiPick = async () => {
-    setAiLoading(true);
-    setAiReason(null);
-    setSelectedNumbers([]);
-    const lucky = await getLuckyNumbers(profile);
-    setSelectedNumbers(lucky.numbers);
-    setAiReason(lucky.reason);
-    setAiLoading(false);
+  const handleQuantumRandomize = () => {
+    const nums: number[] = [];
+    while (nums.length < 4) {
+      const r = Math.floor(Math.random() * 9) + 1;
+      if (!nums.includes(r)) nums.push(r);
+    }
+    setSelectedNumbers(nums.sort((a, b) => a - b));
   };
 
   const handleMint = async () => {
@@ -401,7 +347,6 @@ function App() {
     setStats(s => ({ totalMints: s.totalMints + mintQuantity, activePlayers: s.activePlayers + 1 }));
     setTxStatus('success');
     setSelectedNumbers([]);
-    setAiReason(null);
     setTimeout(() => setTxStatus('idle'), 3000);
   };
 
@@ -432,7 +377,7 @@ function App() {
           </div>
         </div>
         <div className="flex items-center gap-2 md:gap-4">
-          <button onClick={() => setShowResultsModal(true)} className="px-3 py-1.5 md:px-4 md:py-2 border border-[#7FE6C3] dark:border-emerald-500/30 rounded-xl text-[9px] md:text-[11px] font-black uppercase tracking-wider text-[#04211C] dark:text-white hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all">{t.viewResults}</button>
+          <button onClick={() => setShowResultsModal(true)} className="px-3 py-1.5 md:px-4 md:py-2 border border-[#7FE6C3] dark:border-emerald-500/30 rounded-xl text-[9px] md:text-[11px] font-black uppercase tracking-wider text-[#04211C] dark:text-white transition-all hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all">{t.viewResults}</button>
           <button onClick={() => setShowGuideModal(true)} className="hidden sm:flex px-4 py-2 border border-[#7FE6C3] dark:border-emerald-500/30 rounded-xl text-[11px] font-black uppercase tracking-wider text-[#04211C] dark:text-white hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all">{t.howItWorks}</button>
           <button onClick={() => setLang(lang === 'en' ? 'zh' : 'en')} className="px-3 py-2 border border-[#7FE6C3] dark:border-emerald-500/30 rounded-xl text-[11px] font-black text-[#04211C] dark:text-white hover:bg-emerald-50 transition-all">{lang === 'en' ? '中文' : 'EN'}</button>
           <button onClick={() => setIsDark(!isDark)} className="p-2 rounded-xl border border-[#7FE6C3] dark:border-emerald-500/30 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-500/10">
@@ -469,7 +414,7 @@ function App() {
 
         <div className="mt-6 md:mt-12 bg-white dark:bg-[#04211C] rounded-[1.5rem] md:rounded-[2rem] border border-gray-100 dark:border-emerald-500/10 p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 shadow-xl">
           <div className="flex items-center gap-4 w-full md:w-auto">
-            <div className="p-2.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl text-emerald-800 dark:text-emerald-400"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            <div className="p-2.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl text-emerald-800 dark:text-emerald-400"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
             <div><h3 className="font-bold text-base md:text-lg text-[#04211C] dark:text-white">{t.countdownTitle}</h3><p className="text-[10px] md:text-xs font-medium text-gray-400 dark:text-emerald-500/40">{t.countdownSub}</p></div>
           </div>
           <div className="flex gap-4 md:gap-6 justify-center w-full md:w-auto">
@@ -492,35 +437,16 @@ function App() {
           <div className="lg:col-span-5 bg-white dark:bg-[#04211C] rounded-[2rem] md:rounded-[2.5rem] border border-gray-100 dark:border-emerald-500/10 p-6 md:p-10 shadow-xl h-fit">
             <h2 className="text-xl md:text-2xl font-bold font-display mb-6 md:mb-8 text-[#04211C] dark:text-white">{t.mintTitle}</h2>
             <div className="relative">
-              {aiLoading && (
-                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/80 dark:bg-[#04211C]/80 backdrop-blur-sm rounded-2xl animate-in fade-in">
-                  <div className="relative h-16 w-16 mb-4">
-                    <div className="absolute inset-0 rounded-full border-4 border-emerald-500/20 border-t-emerald-500 animate-spin" />
-                    <div className="absolute inset-2 bg-emerald-500/10 rounded-full animate-pulse" />
-                  </div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800 dark:text-emerald-400 animate-pulse">{t.aiThinking}</p>
-                </div>
-              )}
               <div className="grid grid-cols-3 gap-2 md:gap-3 mb-8">
                 {[1,2,3,4,5,6,7,8,9].map(n => (
                   <button key={n} onClick={() => { if(selectedNumbers.includes(n)) setSelectedNumbers(s => s.filter(x => x !== n)); else if(selectedNumbers.length < 4) setSelectedNumbers(s => [...s, n].sort()); }} className={`h-12 md:h-16 rounded-xl md:rounded-2xl flex items-center justify-center text-lg md:text-xl font-black transition-all border-2 active:scale-95 ${selectedNumbers.includes(n) ? "bg-[#04211C] dark:bg-emerald-500 text-white dark:text-[#04211C] border-[#04211C] dark:border-emerald-400" : "bg-white dark:bg-emerald-500/5 border-gray-50 dark:border-emerald-500/10 text-[#04211C] dark:text-white hover:border-[#7FE6C3]"}`}>{n}</button>
                 ))}
               </div>
             </div>
-            <PrimaryButton onClick={handleAiPick} disabled={aiLoading} variant="outline" loading={aiLoading}>
+            <PrimaryButton onClick={handleQuantumRandomize} variant="outline">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z"></path></svg>
-              {t.aiLucky}
+              {t.quantumPick}
             </PrimaryButton>
-
-            {aiReason && (
-              <div className="mt-6 p-6 bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-950/20 dark:to-violet-950/20 border border-indigo-100 dark:border-indigo-500/20 rounded-2xl animate-in slide-in-from-top-4 shadow-sm">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="p-1 bg-indigo-500 rounded text-white shadow-lg"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
-                  <span className="text-[9px] font-black uppercase tracking-widest text-indigo-800 dark:text-indigo-400">{t.aiInsight}</span>
-                </div>
-                <p className="text-xs font-medium text-indigo-900/70 dark:text-indigo-200/60 leading-relaxed italic">"{aiReason}"</p>
-              </div>
-            )}
 
             <div className="mt-6"><PrimaryButton onClick={handleMint} disabled={selectedNumbers.length < 4 || txStatus === 'mining'} loading={txStatus === 'mining'}>{t.purchase}</PrimaryButton></div>
           </div>
