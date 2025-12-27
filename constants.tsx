@@ -32,6 +32,23 @@ export const MERLIN_NETWORK = {
   blockExplorerUrls: ['https://testnet-scan.merlinchain.io'],
 };
 
+export const CONTRACT_ADDRESS = "0x967aEC3276b63c5E2262da9641DB9dbeBB07dC0d";
+
+export const LOTTERY_ABI = [
+  // Read Functions
+  "function getJackpot() public view returns (uint256)",
+  "function getTicketsByOwner(address owner) public view returns (tuple(uint256 id, uint8[4] numbers, uint256 lotteryTimestamp, bool claimed)[] memory)",
+  
+  // Write Functions
+  "function mintTicket(uint8[4] memory numbers, uint256 lotteryTimestamp) public payable",
+  "function claimPrize(uint256 ticketId) public",
+
+  // Events
+  "event TicketMinted(address indexed owner, uint256 indexed ticketId, uint8[4] numbers, uint256 lotteryTimestamp)",
+  "event PrizeClaimed(address indexed owner, uint256 indexed ticketId, uint256 amount)"
+];
+
+
 export const ICONS = {
   Check: () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>

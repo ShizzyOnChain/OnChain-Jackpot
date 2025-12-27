@@ -1,7 +1,8 @@
 
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import ReactDOM from "react-dom/client";
-import { MERLIN_NETWORK } from "./constants";
+import { ethers } from "ethers";
+import { MERLIN_NETWORK, CONTRACT_ADDRESS, LOTTERY_ABI } from "./constants";
 
 // --- CONSTANTS ---
 const PRELOADED_AVATARS = [
@@ -46,7 +47,6 @@ const Logo: React.FC<{ size?: number; opacity?: number }> = ({ size = 52, opacit
   return (
     <svg width={size} height={size} viewBox="0 0 120 120" fill="none" style={{ opacity }}>
       <defs>
-        {/* Fix: Changed second x2="100%" to y2="100%" to avoid duplicate attribute error */}
         <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#f7e1a0" /><stop offset="30%" stopColor="#d4af37" /><stop offset="70%" stopColor="#b8860b" /><stop offset="100%" stopColor="#8b6508" />
         </linearGradient>
@@ -132,6 +132,9 @@ function App() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [claimStatus, setClaimStatus] = useState<Record<string, 'idle' | 'claiming' | 'success'>>({});
 
+  const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
+  const [contract, setContract] = useState<ethers.Contract | null>(null);
+
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -215,12 +218,6 @@ function App() {
     if (account) {
       const stored = localStorage.getItem(`profile_${account}`);
       if (stored) setProfile(JSON.parse(stored));
-      const tks = localStorage.getItem(`tickets_${account}`);
-      if (tks) {
-        const parsedTickets = JSON.parse(tks);
-        const updatedTickets = parsedTickets.map((t: any) => ({ ...t, claimed: t.claimed || false }));
-        setTickets(updatedTickets);
-      }
     }
   }, [account]);
 
@@ -228,8 +225,62 @@ function App() {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+  
+  // Initialize ethers provider and contract
+  useEffect(() => {
+    if (window.ethereum) {
+        const ethProvider = new ethers.BrowserProvider(window.ethereum);
+        setProvider(ethProvider);
+        const lotteryContract = new ethers.Contract(CONTRACT_ADDRESS, LOTTERY_ABI, ethProvider);
+        setContract(lotteryContract);
+    }
+  }, []);
 
-  // Robust connection logic
+  const isCorrectChain = useMemo(() => {
+    if (!chainId) return false;
+    const hexId = chainId.startsWith('0x') ? chainId.toLowerCase() : `0x${parseInt(chainId).toString(16)}`;
+    return hexId === MERLIN_NETWORK.chainId.toLowerCase();
+  }, [chainId]);
+
+  const fetchContractData = useCallback(async () => {
+      if (contract && account && isCorrectChain) {
+          try {
+              const currentJackpot = await contract.getJackpot();
+              setJackpot(parseFloat(ethers.formatEther(currentJackpot)));
+
+              const userTickets = await contract.getTicketsByOwner(account);
+              const formattedTickets = userTickets.map((t: any) => ({
+                  id: t.id.toString(),
+                  numbers: t.numbers.map(Number),
+                  slot: Number(t.lotteryTimestamp) * 1000,
+                  claimed: t.claimed,
+                  timestamp: 0, // This can be deprecated or fetched from block data if needed
+              }));
+              setTickets(formattedTickets.sort((a, b) => b.slot - a.slot));
+          } catch (error) {
+              console.error("Error fetching contract data:", error);
+              // Fallback to empty state on error
+              setJackpot(0);
+              setTickets([]);
+          }
+      } else {
+          // Clear data if not connected correctly
+          setJackpot(0);
+          setTickets([]);
+      }
+  }, [contract, account, isCorrectChain]);
+
+  useEffect(() => {
+      fetchContractData();
+      if (contract) {
+          const filter = contract.filters.TicketMinted(account);
+          const handleMintEvent = () => fetchContractData();
+          contract.on(filter, handleMintEvent);
+          return () => { contract.off(filter, handleMintEvent); };
+      }
+  }, [fetchContractData, contract, account]);
+
+
   const checkConnection = useCallback(async () => {
     if (window.ethereum) {
       try {
@@ -252,12 +303,6 @@ function App() {
       window.ethereum.on('accountsChanged', (accs: string[]) => setAccount(accs[0] || null));
     }
   }, [checkConnection]);
-
-  const isCorrectChain = useMemo(() => {
-    if (!chainId) return false;
-    const hexId = chainId.startsWith('0x') ? chainId.toLowerCase() : `0x${parseInt(chainId).toString(16)}`;
-    return hexId === MERLIN_NETWORK.chainId.toLowerCase();
-  }, [chainId]);
 
   const lotterySlots = useMemo(() => {
     const slots = [];
@@ -330,7 +375,6 @@ function App() {
     if (window.ethereum) {
       try {
         setIsConnecting(true);
-        // Request accounts, which prompts the user to connect.
         const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
         
         if (accs.length > 0) {
@@ -338,11 +382,7 @@ function App() {
           const cid = await window.ethereum.request({ method: 'eth_chainId' });
           setChainId(cid);
 
-          // After connecting, check if it's the correct network.
-          // Use the same logic as isCorrectChain for consistency.
           const currentHexChainId = cid.startsWith('0x') ? cid.toLowerCase() : `0x${parseInt(cid).toString(16)}`;
-          
-          // If not on Merlin Testnet, prompt user to switch.
           if (currentHexChainId !== MERLIN_NETWORK.chainId.toLowerCase()) {
             await switchNetwork();
           }
@@ -369,24 +409,33 @@ function App() {
   const handleMint = async () => {
     if (!account) return connectWallet();
     if (!isCorrectChain) return switchNetwork();
-    setTxStatus('mining');
-    await new Promise(r => setTimeout(r, 2000));
-    
-    const newTks = [{
-      id: Math.random().toString(36).substring(7).toUpperCase(),
-      numbers: [...selectedNumbers],
-      slot: selectedSlot,
-      timestamp: Date.now(),
-      claimed: false
-    }];
+    if (!provider || !contract) return;
 
-    const updated = [...newTks, ...tickets];
-    setTickets(updated);
-    if (account) localStorage.setItem(`tickets_${account}`, JSON.stringify(updated));
-    setJackpot(j => j + 1.0);
-    setTxStatus('success');
-    setSelectedNumbers([]);
-    setTimeout(() => setTxStatus('idle'), 3000);
+    setTxStatus('awaiting');
+    try {
+        const signer = await provider.getSigner();
+        const contractWithSigner = contract.connect(signer) as ethers.Contract;
+        
+        // Assuming ticket price is 0.0001 BTC for Merlin Testnet
+        const ticketPrice = ethers.parseUnits("0.0001", "ether"); 
+
+        const tx = await contractWithSigner.mintTicket(
+            selectedNumbers,
+            Math.floor(selectedSlot / 1000),
+            { value: ticketPrice }
+        );
+
+        setTxStatus('mining');
+        await tx.wait();
+
+        setTxStatus('success');
+        setSelectedNumbers([]);
+        setTimeout(() => setTxStatus('idle'), 3000);
+    } catch (error) {
+        console.error("Minting failed:", error);
+        setTxStatus('error');
+        setTimeout(() => setTxStatus('idle'), 3000);
+    }
   };
 
   const saveProfile = () => {
@@ -428,12 +477,22 @@ function App() {
   const handleClaim = async (ticketId: string) => {
     if (!account) { await connectWallet(); return; }
     if (!isCorrectChain) { await switchNetwork(); return; }
+    if (!provider || !contract) return;
+
     setClaimStatus(prev => ({ ...prev, [ticketId]: 'claiming' }));
-    await new Promise(r => setTimeout(r, 2000)); // Simulate claim
-    const updatedTickets = tickets.map(t => t.id === ticketId ? { ...t, claimed: true } : t);
-    setTickets(updatedTickets);
-    if(account) localStorage.setItem(`tickets_${account}`, JSON.stringify(updatedTickets));
-    setClaimStatus(prev => ({ ...prev, [ticketId]: 'success' }));
+    try {
+        const signer = await provider.getSigner();
+        const contractWithSigner = contract.connect(signer) as ethers.Contract;
+        
+        const tx = await contractWithSigner.claimPrize(ticketId);
+        await tx.wait();
+        
+        await fetchContractData(); // Refetch to update claimed status
+        setClaimStatus(prev => ({ ...prev, [ticketId]: 'success' }));
+    } catch (error) {
+        console.error("Claiming failed:", error);
+        setClaimStatus(prev => ({ ...prev, [ticketId]: 'idle' }));
+    }
   };
 
   const formatDate = (ts: number | string) => {
@@ -447,7 +506,6 @@ function App() {
     return `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())} UTC`;
   };
 
-  // Fix: Changed component signature to React.FC to correctly handle React's special `key` prop and resolve TypeScript error.
   const TicketCard: React.FC<{ ticket: any }> = ({ ticket }) => {
       const isPast = ticket.slot < Date.now();
       const winningNumbers = isPast ? getWinningNumbersForSlot(ticket.slot) : null;
@@ -550,7 +608,7 @@ function App() {
           <div className="w-full lg:w-[480px]">
             <div className="relative bg-[#04211C] dark:bg-black rounded-[3rem] p-12 text-white shadow-2xl border border-emerald-500/20 overflow-hidden">
               <span className="text-[13px] font-black text-emerald-400 uppercase tracking-[0.4em]">{t.jackpotLabel}</span>
-              <div className="flex items-baseline gap-4 mt-1"><span className="text-7xl md:text-8xl font-black font-display tracking-tighter text-white">{jackpot.toFixed(2)}</span><span className="text-xl font-black text-emerald-400">M-USDT</span></div>
+              <div className="flex items-baseline gap-4 mt-1"><span className="text-7xl md:text-8xl font-black font-display tracking-tighter text-white">{jackpot.toFixed(2)}</span><span className="text-xl font-black text-emerald-400">BTC</span></div>
             </div>
           </div>
         </section>
@@ -621,8 +679,8 @@ function App() {
               </div>
 
               <div className="bg-emerald-50 dark:bg-emerald-500/5 rounded-[2rem] p-8 border dark:border-emerald-500/10">
-                <div className="flex justify-between items-center mb-6"><span className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em]">{t.totalPrice}</span><span className="text-xl font-black dark:text-white">1.00 M-USDT</span></div>
-                <PrimaryButton onClick={handleMint} disabled={selectedNumbers.length < 4 || txStatus === 'mining'}>{account ? t.purchase : t.connect}</PrimaryButton>
+                <div className="flex justify-between items-center mb-6"><span className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em]">{t.totalPrice}</span><span className="text-xl font-black dark:text-white">0.0001 BTC</span></div>
+                <PrimaryButton onClick={handleMint} disabled={selectedNumbers.length < 4 || txStatus === 'mining' || txStatus === 'awaiting'}>{account ? t.purchase : t.connect}</PrimaryButton>
                 <p className="mt-4 text-[10px] text-center opacity-40 uppercase tracking-widest dark:text-white">{t.gasFeesNote}</p>
               </div>
             </div>
