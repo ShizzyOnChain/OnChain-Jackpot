@@ -23,15 +23,13 @@ const MERLIN_NETWORK = {
 const getLuckyNumbers = async (profile?: { username: string; bio: string }): Promise<{ numbers: number[]; reason: string }> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
-    const prompt = `Suggest 4 unique lucky lottery numbers between 1 and 9. 
-    The user is "${profile?.username || 'an anonymous player'}" with the following bio: "${profile?.bio || 'an on-chain enthusiast'}".
-    Provide a deeply insightful, fun, and philosophical reason for the selection that relates to their persona and the concept of on-chain luck and deterministic destiny.`;
+    const prompt = `Suggest 4 unique lucky lottery numbers between 1 and 9 for "${profile?.username || 'LuckyPlayer'}" (${profile?.bio || 'Blockchain Fan'}). 
+    Provide a fun, very short reason matching their vibe and on-chain destiny. Return as JSON.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-pro-preview",
+      model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
-        thinkingConfig: { thinkingBudget: 4000 },
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -47,7 +45,7 @@ const getLuckyNumbers = async (profile?: { username: string; bio: string }): Pro
     const data = JSON.parse(response.text || '{}');
     return {
       numbers: Array.isArray(data.numbers) ? data.numbers.slice(0, 4).map(Number).filter(n => n >= 1 && n <= 9) : [1, 2, 3, 4],
-      reason: data.reason || "The stars have aligned for these numbers!"
+      reason: data.reason || "The flash of entropy has chosen your path!"
     };
   } catch (e) {
     console.error("AI Pick Error:", e);
@@ -168,7 +166,7 @@ const translations = {
     disclaimer: "Legal Disclaimer", disclaimerText: "OnChain Jackpot is an experimental verifiable game of chance. Participating in lotteries involves financial risk. Digital assets are highly volatile.",
     latestResult: "Latest Result", settledMsg: "LOTTERY SUCCESSFULLY SETTLED",
     verifyingOnchain: "Verifying Onchain Entropy...", revealSuccess: "Settlement Complete",
-    aiLucky: "AI Quantum Pick", days: "Days", hours: "Hours", minutes: "Minutes", seconds: "Seconds",
+    aiLucky: "AI Flash Pick", days: "Days", hours: "Hours", minutes: "Minutes", seconds: "Seconds",
     countdownTitle: "Next Lottery Countdown", countdownSub: "Reveal: 00:00 & 12:00 UTC",
     myTickets: "My NFT Entries", profile: "Profile", referral: "Referral & Rewards", logout: "Logout",
     save: "Save Changes", cancel: "Cancel", copyLink: "Copy Link", referralBonus: "EARN 0.02 M-USDT FOR EVERY NFT MINTED THROUGH YOUR LINK",
@@ -182,7 +180,7 @@ const translations = {
     transparency: "Verified on MerlinChain", transparencyDesc: "All NFT tickets are ERC721 assets. You can verify your participation and the outcome directly on the blockchain explorer.",
     riskTitle: "Risk & Compliance", riskDesc: "Please participate responsibly. This platform is decentralized and automated. Ensure you are compliant with your local jurisdiction's regulations.",
     claimAll: "Claim All Rewards", available: "Available to Claim",
-    aiInsight: "AI DESTINY INSIGHT", aiThinking: "Harmonizing Entropy..."
+    aiInsight: "FLASH DESTINY INSIGHT", aiThinking: "Mining Entropy..."
   },
   zh: {
     title: "链上大奖", connect: "连接", heroTitle: "链上每日彩票",
@@ -204,7 +202,7 @@ const translations = {
     disclaimer: "法律声明", disclaimerText: "OnChain Jackpot 是一款实验性的几率游戏。参与彩票涉及财务风险。数字资产波动性极高。",
     latestResult: "最新开奖", settledMsg: "开奖已成功结算",
     verifyingOnchain: "验证链上数据...", revealSuccess: "结算完成",
-    aiLucky: "AI 量子挑选", days: "天", hours: "小时", minutes: "分钟", seconds: "秒",
+    aiLucky: "AI 极速挑选", days: "天", hours: "小时", minutes: "分钟", seconds: "秒",
     countdownTitle: "下次开奖倒计时", countdownSub: "开奖时间: 00:00 & 12:00 UTC",
     myTickets: "我的投注", profile: "个人中心", referral: "推荐奖励", logout: "断开连接",
     save: "保存修改", cancel: "取消", copyLink: "复制链接", referralBonus: "通过您的链接铸造的每个 NFT 均可赚取 0.02 M-USDT",
@@ -218,7 +216,7 @@ const translations = {
     transparency: "在 MerlinChain 上验证", transparencyDesc: "所有 NFT 门票均为 ERC721 资产。您可以直接在区块链浏览器上验证您的参与情况和结果。",
     riskTitle: "风险与合规", riskDesc: "请负责任地参与。平台完全去中心化并自动化。请确保您符合当地关于数字资产的法律法规。",
     claimAll: "领取所有奖励", available: "可领取金额",
-    aiInsight: "AI 命运洞察", aiThinking: "正在调和熵值..."
+    aiInsight: "极速命运洞察", aiThinking: "正在提取熵值..."
   }
 };
 
@@ -310,6 +308,37 @@ function App() {
       seconds: totalSeconds % 60
     };
   }, [now, lotterySlots]);
+
+  // --- REVEAL SEQUENCE LOGIC ---
+  const runLiveLotterySequence = async () => {
+    if (isRevealing) return;
+    setIsRevealing(true);
+    setLotteryPhase(0);
+    setLiveLotteryNumbers([null, null, null, null]);
+    const finalNumbers = getWinningNumbersForSlot(lastSettledLotteryTime);
+    
+    for (let i = 1; i <= 4; i++) {
+      await new Promise(r => setTimeout(r, 1200));
+      setLiveLotteryNumbers(prev => {
+        const next = [...prev];
+        next[i - 1] = finalNumbers[i - 1];
+        return next;
+      });
+      setLotteryPhase(i);
+    }
+    await new Promise(r => setTimeout(r, 800));
+    setLotteryPhase(5);
+    setIsRevealing(false);
+  };
+
+  useEffect(() => {
+    if (showResultsModal) {
+      runLiveLotterySequence();
+    } else {
+      setLiveLotteryNumbers([null, null, null, null]);
+      setLotteryPhase(0);
+    }
+  }, [showResultsModal]);
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -548,7 +577,16 @@ function App() {
                   </div>
                 ))}
              </div>
-             <p className="text-[9px] md:text-[10px] font-bold text-emerald-800/40 dark:text-white/30 uppercase tracking-widest">{lotteryPhase < 5 ? t.verifyingOnchain : t.revealSuccess}</p>
+             <div className="flex flex-col items-center gap-3">
+               <p className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 dark:text-white/30">
+                 {lotteryPhase < 4 ? t.verifyingOnchain : t.revealSuccess}
+               </p>
+               {lotteryPhase === 5 && (
+                 <div className="px-6 py-2 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-black uppercase tracking-[0.2em] animate-in fade-in slide-in-from-bottom-2">
+                   {t.settledMsg}
+                 </div>
+               )}
+             </div>
           </div>
         </div>
       )}
