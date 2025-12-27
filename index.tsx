@@ -162,7 +162,7 @@ function App() {
       select4: "SELECT 4 NUMBERS (1-9)", randomize: "Randomize", purchase: "Mint Ticket",
       viewResults: "VIEW RESULTS", howItWorks: "HOW IT WORKS", countdownTitle: "Next Prediction Countdown", countdownSub: "Reveal: 00:00 & 12:00 UTC",
       myTickets: "My Entries", profile: "Profile", referral: "Referral & Rewards", logout: "Logout",
-      save: "Save Changes", copyLink: "Copy Link", jackpotLabel: "NEXT JACKPOT", network: "MERLIN TESTNET",
+      save: "Save Changes", copyLink: "Copy Link", jackpotLabel: "CURRENT JACKPOT", network: "MERLIN TESTNET",
       switchToTestnet: "Switch to Merlin Testnet", latestResult: "Latest Result", settledMsg: "PREDICTION SUCCESSFULLY SETTLED",
       verifyingOnchain: "Verifying Onchain Entropy...", revealSuccess: "Settlement Complete", days: "Days", hours: "Hours", minutes: "Minutes", seconds: "Seconds",
       totalPrice: "TOTAL PRICE", gasFeesNote: "+ Gas Fees Apply", targetLottery: "TARGET DRAW",
@@ -196,7 +196,7 @@ function App() {
       select4: "选择 4 个数字 (1-9)", randomize: "随机生成", purchase: "铸造票证",
       viewResults: "查看结果", howItWorks: "运作方式", countdownTitle: "下次预测倒计时", countdownSub: "开奖时间: 00:00 & 12:00 UTC",
       myTickets: "我的票证", profile: "个人中心", referral: "推荐奖励", logout: "断开连接",
-      save: "保存修改", copyLink: "复制链接", jackpotLabel: "下期奖池", network: "MERLIN 测试网",
+      save: "保存修改", copyLink: "复制链接", jackpotLabel: "当前奖池", network: "MERLIN 测试网",
       switchToTestnet: "切换至 Merlin 测试网", latestResult: "最新开奖", settledMsg: "预测已成功结算",
       verifyingOnchain: "验证链上数据...", revealSuccess: "结算完成", days: "天", hours: "小时", minutes: "分钟", seconds: "秒",
       totalPrice: "总价", gasFeesNote: "+ 需支付网络 Gas 费", targetLottery: "目标期数",
@@ -341,7 +341,7 @@ function App() {
             draws[ts] = {
                 jackpotTotal: parseFloat(ethers.formatEther(args.jackpot)),
                 winnerCount: Number(args.winnerCount),
-                prizePerWinner: 0, 
+                prizePerWinner: parseFloat(ethers.formatEther(args.prizePerWinner)), 
                 winningNumbers: args.winningNumbers.map(Number),
                 settled: true
             };
@@ -354,21 +354,20 @@ function App() {
     fetchDraws();
   }, [contract]);
 
-  // Fetch next jackpot size
+  // Fetch global jackpot size
   useEffect(() => {
-    if (!contract || predictionSlots.length === 0) return;
-    const fetchNextJackpot = async () => {
+    if (!contract) return;
+    const fetchJackpot = async () => {
       try {
-        const nextDrawTimestamp = Math.floor(predictionSlots[0] / 1000);
-        const drawData = await contract.draws(nextDrawTimestamp);
-        setJackpot(parseFloat(ethers.formatEther(drawData.jackpotTotal)));
-      } catch(e) {
+        const jackpotValue = await contract.getJackpot();
+        setJackpot(parseFloat(ethers.formatEther(jackpotValue)));
+      } catch (e) {
         console.error("Could not fetch jackpot:", e);
         setJackpot(0);
       }
     };
-    fetchNextJackpot();
-  }, [contract, predictionSlots]);
+    fetchJackpot();
+  }, [contract]);
 
 
   useEffect(() => {
@@ -622,15 +621,25 @@ function App() {
       <header className="sticky top-0 z-50 bg-white/90 dark:bg-[#04211C]/90 backdrop-blur-lg border-b border-gray-100 dark:border-emerald-500/10 px-4 md:px-8 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.location.reload()}>
             <div className="h-10 w-10">
-              <svg width="42" height="42" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M42.26 9.71c-3.1 1.8-3.1 6.2 0 8l15.48 9c3.1 1.8 7.02-0.5 7.02-4V13.7c0-3.6-3.92-5.8-7.02-4L42.26 9.7zM29.5 25.4a4 4 0 0 0-4 4v29.3c0 3.6 3.92 5.8 7.01 4l15.5-9a4 4 0 0 0 0-8L32.5 41.7a4 4 0 0 1 0-8l15.5-9a4 4 0 0 0 0-8L29.5 25.4z" fill="url(#paint0_linear_1)"/>
-                <path d="M57.74 90.29c3.1-1.8 3.1-6.2 0-8L42.26 73.3c-3.1-1.8-7.02.5-7.02 4v22.6c0 3.6 3.92 5.8 7.02 4l15.48-9zM70.5 74.6a4 4 0 0 1 4-4h.01v-29.3c0-3.6-3.92-5.8-7.02-4l-15.5 9a4 4 0 0 1 0 8l15.5 9a4 4 0 0 0 0 8l-15.5 9a4 4 0 0 1 0 8l15.5-9z" fill="url(#paint1_linear_1)"/>
-                <circle cx="50" cy="50" r="48" stroke="url(#paint2_linear_1)" stroke-width="4"/>
-                <defs>
-                  <linearGradient id="paint0_linear_1" x1="25" y1="36" x2="65" y2="21" gradientUnits="userSpaceOnUse"><stop stop-color="#38F8D4"/><stop offset="1" stop-color="#08E1A6"/></linearGradient>
-                  <linearGradient id="paint1_linear_1" x1="75" y1="64" x2="35" y2="79" gradientUnits="userSpaceOnUse"><stop stop-color="#38F8D4"/><stop offset="1" stop-color="#08E1A6"/></linearGradient>
-                  <linearGradient id="paint2_linear_1" x1="50" y1="0" x2="50" y2="100" gradientUnits="userSpaceOnUse"><stop stop-color="#08E1A6" stop-opacity="0"/><stop offset="0.2" stop-color="#08E1A6" stop-opacity="0.5"/><stop offset="0.5" stop-color="#38F8D4"/><stop offset="0.8" stop-color="#08E1A6" stop-opacity="0.5"/><stop offset="1" stop-color="#08E1A6" stop-opacity="0"/></linearGradient>
-                </defs>
+              <svg width="42" height="42" viewBox="0 0 80 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <g fill="#0D6B58">
+                  <polygon points="62,20 51,39.05 29,39.05 18,20 29,0.95 51,0.95"/>
+                  <polygon points="62,80 51,99.05 29,99.05 18,80 29,60.95 51,60.95"/>
+                  <polygon points="44.68,50 33.68,69.05 11.68,69.05 0.68,50 11.68,30.95 33.68,30.95"/>
+                  <polygon points="79.32,50 68.32,69.05 46.32,69.05 35.32,50 46.32,30.95 68.32,30.95"/>
+                </g>
+                <g fill="#D4AF37">
+                  <polygon points="60,20 50,37.32 30,37.32 20,20 30,2.68 50,2.68"/>
+                  <polygon points="60,80 50,97.32 30,97.32 20,80 30,62.68 50,62.68"/>
+                  <polygon points="42.68,50 32.68,67.32 12.68,67.32 2.68,50 12.68,32.68 32.68,32.68"/>
+                  <polygon points="77.32,50 67.32,67.32 47.32,67.32 37.32,50 47.32,32.68 67.32,32.68"/>
+                </g>
+                <g fill="none" stroke="#F9D77E" strokeWidth="1.5">
+                  <polygon points="58,20 49,35.59 31,35.59 22,20 31,4.41 49,4.41"/>
+                  <polygon points="58,80 49,95.59 31,95.59 22,80 31,64.41 49,64.41"/>
+                  <polygon points="40.68,50 31.68,65.59 13.68,65.59 4.68,50 13.68,34.41 31.68,34.41"/>
+                  <polygon points="75.32,50 66.32,65.59 48.32,65.59 39.32,50 48.32,34.41 66.32,34.41"/>
+                </g>
               </svg>
             </div>
             <div className="hidden sm:block">
