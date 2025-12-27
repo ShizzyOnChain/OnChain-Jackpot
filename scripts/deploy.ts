@@ -1,3 +1,7 @@
+// FIX: Add a triple-slash directive to include Node.js types.
+// This resolves the TypeScript error "Property 'exitCode' does not exist on type 'Process'"
+// by providing the correct type definitions for the global `process` object in a Node.js environment.
+/// <reference types="node" />
 
 import { ethers } from "ethers";
 import { LOTTERY_ABI } from "../constants";
