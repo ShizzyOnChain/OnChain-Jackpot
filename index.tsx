@@ -265,72 +265,58 @@ function App() {
   }, [chainId]);
 
   const fetchContractData = useCallback(async () => {
-      if (contract && account && isCorrectChain) {
-          try {
-              const currentJackpot = await contract.getJackpot();
-              setJackpot(parseFloat(ethers.formatEther(currentJackpot)));
+    if (contract && account) {
+        try {
+            const currentJackpot = await contract.getJackpot();
+            setJackpot(parseFloat(ethers.formatEther(currentJackpot)));
 
-              const userTickets = await contract.getTicketsByOwner(account);
-              const formattedTickets = userTickets.map((t: any) => ({
-                  id: t.id.toString(),
-                  numbers: t.numbers.map(Number),
-                  slot: Number(t.lotteryTimestamp) * 1000,
-                  claimed: t.claimed,
-                  timestamp: 0, // This can be deprecated or fetched from block data if needed
-              }));
-              setTickets(formattedTickets.sort((a, b) => b.slot - a.slot));
-          } catch (error) {
-              console.error("Error fetching contract data:", error);
-              setJackpot(0);
-              setTickets([]);
-          }
-      } else {
-          setJackpot(0);
-          setTickets([]);
-      }
-  }, [contract, account, isCorrectChain]);
+            const userTickets = await contract.getTicketsByOwner(account);
+            const formattedTickets = userTickets.map((t: any) => ({
+                id: t.id.toString(),
+                numbers: t.numbers.map(Number),
+                slot: Number(t.lotteryTimestamp) * 1000,
+                claimed: t.claimed,
+                timestamp: 0,
+            }));
+            setTickets(formattedTickets.sort((a, b) => b.slot - a.slot));
+        } catch (error) {
+            console.error("Error fetching contract data:", error);
+            setJackpot(0);
+            setTickets([]);
+        }
+    }
+  }, [contract, account]);
 
   useEffect(() => {
+    if (account && isCorrectChain) {
       fetchContractData();
-      if (contract) {
-          const filter = contract.filters.TicketMinted(account);
-          const handleMintEvent = () => fetchContractData();
-          contract.on(filter, handleMintEvent);
-          return () => { contract.off(filter, handleMintEvent); };
-      }
-  }, [fetchContractData, contract, account]);
+    } else {
+      // Clear data if not connected or on wrong chain
+      setJackpot(0);
+      setTickets([]);
+    }
+    
+    // Setup event listener if connected correctly
+    if (contract && account && isCorrectChain) {
+        const filter = contract.filters.TicketMinted(account);
+        const handleMintEvent = () => fetchContractData();
+        contract.on(filter, handleMintEvent);
+        return () => { contract.off(filter, handleMintEvent); };
+    }
+  }, [account, isCorrectChain, contract, fetchContractData]);
 
-
-  const checkConnection = useCallback(async (isUserAction = false) => {
+  useEffect(() => {
     if (window.ethereum) {
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        if (accounts.length > 0) {
-          setAccount(accounts[0]);
-          const cid = await window.ethereum.request({ method: 'eth_chainId' });
-          setChainId(cid);
-        } else if (isUserAction) {
-          // If no accounts are found and it's a user action, request them.
-          const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
-           if (accs.length > 0) {
-            setAccount(accs[0]);
-            const cid = await window.ethereum.request({ method: 'eth_chainId' });
-            setChainId(cid);
-           }
-        }
-      } catch (e) {
-        console.error("Connection check failed", e);
-      }
+      // Listen for account changes
+      window.ethereum.on('accountsChanged', (accs: string[]) => {
+        setAccount(accs[0] || null);
+      });
+      // Listen for chain changes
+      window.ethereum.on('chainChanged', (cid: string) => {
+        setChainId(cid);
+      });
     }
   }, []);
-
-  useEffect(() => {
-    checkConnection(false); // Initial passive check
-    if (window.ethereum) {
-      window.ethereum.on('chainChanged', (cid: string) => setChainId(cid));
-      window.ethereum.on('accountsChanged', (accs: string[]) => setAccount(accs[0] || null));
-    }
-  }, [checkConnection]);
 
   const lotterySlots = useMemo(() => {
     const slots = [];
@@ -403,18 +389,12 @@ function App() {
     if (window.ethereum) {
       try {
         setIsConnecting(true);
-        // This is now the primary method to trigger the wallet connection prompt.
         const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        
         if (accs.length > 0) {
           setAccount(accs[0]);
           const cid = await window.ethereum.request({ method: 'eth_chainId' });
           setChainId(cid);
-
-          const currentHexChainId = cid.startsWith('0x') ? cid.toLowerCase() : `0x${parseInt(cid).toString(16)}`;
-          if (currentHexChainId !== MERLIN_NETWORK.chainId.toLowerCase()) {
-            await switchNetwork();
-          }
+          // Automatic switch is removed. UI will prompt if necessary.
         }
       } catch (e) { 
         console.error("Wallet connection failed", e); 
