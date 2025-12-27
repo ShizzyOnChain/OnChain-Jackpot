@@ -104,16 +104,6 @@ const TimeDisplay = ({ value, label }: { value: string, label: string }) => (
   </div>
 );
 
-function Step({ num, title, desc }: { num: number; title: string; desc: string }) {
-  return (
-    <div className="flex flex-col items-center text-center">
-      <div className="h-12 w-12 rounded-2xl bg-emerald-100 dark:bg-emerald-500 text-emerald-800 dark:text-[#04211C] flex items-center justify-center font-black text-xl mb-4">{num}</div>
-      <h4 className="font-bold mb-2 text-sm text-[#04211C] dark:text-white">{title}</h4>
-      <p className="text-[11px] text-emerald-900/60 dark:text-white/40 leading-relaxed font-medium">{desc}</p>
-    </div>
-  );
-}
-
 // --- MAIN APP ---
 function App() {
   const [lang, setLang] = useState<'en' | 'zh'>('en');
@@ -121,15 +111,18 @@ function App() {
   const [account, setAccount] = useState<string | null>(null);
   const [chainId, setChainId] = useState<string | null>(null);
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
+  const [mintQuantity, setMintQuantity] = useState(1);
   const [jackpot, setJackpot] = useState(1240.50);
-  const [referralBalance, setReferralBalance] = useState({ total: 12.40, available: 4.20 });
+  const [referralBalance, setReferralBalance] = useState({ total: 0.00, available: 0.00 });
   const [now, setNow] = useState(new Date());
   const [txStatus, setTxStatus] = useState<'idle' | 'awaiting' | 'mining' | 'success' | 'error'>('idle');
 
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [tickets, setTickets] = useState<any[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [profile, setProfile] = useState({
     username: "LuckyPlayer",
@@ -164,8 +157,7 @@ function App() {
       rule3: "Jackpot is shared among all winners of that specific lottery window.",
       rule4: "Referral fees (0.02 M-USDT) are paid instantly upon successful minting.",
       disclaimer: "Legal Disclaimer", disclaimerText: "OnChain Jackpot is an experimental verifiable game of chance. Participating in lotteries involves financial risk.",
-      available: "Available to Claim", claimAll: "Claim All Rewards",
-      totalEarned: "Total Earned", referralLink: "Your Referral Link", earningsSection: "Earnings & Referral"
+      available: "Available to Claim", claimAll: "Claim All Rewards"
     },
     zh: {
       title: "链上大奖", connect: "连接", heroTitle: "链上每日彩票",
@@ -189,8 +181,7 @@ function App() {
       rule3: "奖池由该特定开奖时段的所有中奖者平分。",
       rule4: "成功铸造后，推荐费 (0.02 M-USDT) 将立即支付。",
       disclaimer: "法律声明", disclaimerText: "OnChain Jackpot 是一款实验性的几率游戏。参与彩票涉及财务风险。",
-      available: "可领取金额", claimAll: "领取所有奖励",
-      totalEarned: "总收益", referralLink: "您的推荐链接", earningsSection: "收益与推荐"
+      available: "可领取金额", claimAll: "领取所有奖励"
     }
   };
 
@@ -219,10 +210,7 @@ function App() {
     if (window.ethereum) {
       window.ethereum.request({ method: 'eth_chainId' }).then(setChainId);
       window.ethereum.on('chainChanged', (cid: string) => setChainId(cid));
-      window.ethereum.on('accountsChanged', (accs: string[]) => {
-        if (accs.length > 0) setAccount(accs[0]);
-        else setAccount(null);
-      });
+      window.ethereum.on('accountsChanged', (accs: string[]) => setAccount(accs[0] || null));
     }
   }, []);
 
@@ -236,18 +224,20 @@ function App() {
     const slots = [];
     const base = new Date();
     base.setUTCMinutes(0, 0, 0);
+    // Find next drawings at 00:00 and 12:00 UTC
     for (let i = 0; i < 48; i++) {
       const d = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate(), base.getUTCHours() + i, 0, 0, 0));
       if (d.getUTCHours() === 0 || d.getUTCHours() === 12) {
         if (d.getTime() > Date.now()) slots.push(d.getTime());
       }
-      if (slots.length >= 3) break;
+      if (slots.length >= 3) break; // Limit to next 3
     }
     return slots;
   }, [now.getUTCDate(), now.getUTCHours()]);
 
   const [selectedSlot, setSelectedSlot] = useState(lotterySlots[0]);
 
+  // Ensure selected slot stays valid when lotterySlots updates after a drawing
   useEffect(() => {
     if (lotterySlots.length > 0 && (!selectedSlot || !lotterySlots.includes(selectedSlot))) {
       setSelectedSlot(lotterySlots[0]);
@@ -264,11 +254,16 @@ function App() {
   const runLiveLotterySequence = useCallback(async () => {
     setLotteryPhase(0);
     setLiveLotteryNumbers([null, null, null, null]);
+    // Determine the last drawing time (either 00:00 or 12:00 UTC)
     const base = new Date();
     base.setUTCMinutes(0, 0, 0);
     let lastSettled;
-    if (base.getUTCHours() >= 12) lastSettled = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate(), 12, 0, 0)).getTime();
-    else lastSettled = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate(), 0, 0, 0)).getTime();
+    if (base.getUTCHours() >= 12) {
+      lastSettled = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate(), 12, 0, 0)).getTime();
+    } else {
+      lastSettled = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate(), 0, 0, 0)).getTime();
+    }
+    // If we're right at the drawing, use the one before it to ensure "settled" data
     if (Date.now() - lastSettled < 60000) lastSettled -= (12 * 3600 * 1000);
 
     const finalNumbers = getWinningNumbersForSlot(lastSettled);
@@ -319,19 +314,19 @@ function App() {
     if (!isCorrectChain) return switchNetwork();
     setTxStatus('mining');
     await new Promise(r => setTimeout(r, 2000));
-    
-    // Quantity is now always 1
-    const newTks = [{
-      id: Math.random().toString(36).substring(7).toUpperCase(),
-      numbers: [...selectedNumbers],
-      slot: selectedSlot,
-      timestamp: Date.now()
-    }];
-    
+    const newTks = [];
+    for (let i = 0; i < mintQuantity; i++) {
+      newTks.push({
+        id: Math.random().toString(36).substring(7).toUpperCase(),
+        numbers: i === 0 ? [...selectedNumbers] : Array.from({length: 4}, () => Math.floor(Math.random() * 9) + 1),
+        slot: selectedSlot,
+        timestamp: Date.now()
+      });
+    }
     const updated = [...newTks, ...tickets];
     setTickets(updated);
     if (account) localStorage.setItem(`tickets_${account}`, JSON.stringify(updated));
-    setJackpot(j => j + 1.0);
+    setJackpot(j => j + (mintQuantity * 1.0));
     setTxStatus('success');
     setSelectedNumbers([]);
     setTimeout(() => setTxStatus('idle'), 3000);
@@ -360,10 +355,6 @@ function App() {
             <button onClick={switchNetwork} className="px-3 py-1.5 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 rounded-xl text-[10px] font-black uppercase tracking-wider animate-pulse transition-all">{t.switchToTestnet}</button>
           )}
           <button onClick={() => setShowResultsModal(true)} className="px-3 py-1.5 border border-[#7FE6C3] dark:border-emerald-500/30 rounded-xl text-[9px] md:text-[11px] font-black uppercase tracking-wider text-[#04211C] dark:text-white transition-all hover:bg-emerald-50 dark:hover:bg-emerald-500/10">{t.viewResults}</button>
-          <button onClick={() => setShowGuideModal(true)} className="hidden sm:block px-3 py-1.5 border border-[#7FE6C3] dark:border-emerald-500/30 rounded-xl text-[9px] md:text-[11px] font-black uppercase tracking-wider text-[#04211C] dark:text-white transition-all hover:bg-emerald-50 dark:hover:bg-emerald-500/10">{t.howItWorks}</button>
-          <button onClick={() => setLang(lang === 'en' ? 'zh' : 'en')} className="px-3 py-1.5 border border-[#7FE6C3] dark:border-emerald-500/30 rounded-xl text-[9px] md:text-[11px] font-black uppercase tracking-wider text-[#04211C] dark:text-white transition-all hover:bg-emerald-50 dark:hover:bg-emerald-500/10">
-            {lang === 'en' ? '中文' : 'EN'}
-          </button>
           <button onClick={() => setIsDark(!isDark)} className="p-2 rounded-xl border border-[#7FE6C3] dark:border-emerald-500/30">
             {isDark ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-emerald-400"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-midnight"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>}
           </button>
@@ -393,7 +384,7 @@ function App() {
 
         <div className="mt-12 bg-white dark:bg-[#04211C] rounded-[2rem] border border-gray-100 dark:border-emerald-500/10 p-8 flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl text-emerald-800 dark:text-emerald-400"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            <div className="p-2.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl text-emerald-800 dark:text-emerald-400"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
             <div><h3 className="font-bold text-lg dark:text-white">{t.countdownTitle}</h3><p className="text-xs font-medium text-gray-400 dark:text-emerald-500/40">{t.countdownSub}</p></div>
           </div>
           <div className="flex gap-6 justify-center">
@@ -425,21 +416,22 @@ function App() {
               
               <div className="mb-8">
                 <label className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 mb-3 block">{t.selectSchedule}</label>
-                <div className="relative">
-                  <select 
-                    value={selectedSlot} 
-                    onChange={(e) => setSelectedSlot(Number(e.target.value))}
-                    className="w-full appearance-none px-5 py-4 rounded-2xl border-2 border-gray-50 dark:border-emerald-500/10 bg-white dark:bg-emerald-500/5 text-sm font-bold dark:text-white focus:outline-none focus:border-emerald-400 transition-all cursor-pointer"
-                  >
-                    {lotterySlots.map(ts => (
-                      <option key={ts} value={ts} className="dark:bg-[#04211C]">
-                        {new Date(ts).toLocaleDateString(lang === 'en' ? 'en-US' : 'zh-CN', { month: 'short', day: 'numeric' })} - {pad2(new Date(ts).getUTCHours())}:00 UTC
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-emerald-800/40">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                  </div>
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                  {lotterySlots.map(ts => (
+                    <button key={ts} onClick={() => setSelectedSlot(ts)} className={`flex-shrink-0 px-4 py-3 rounded-xl border-2 transition-all flex flex-col items-center min-w-[100px] ${selectedSlot === ts ? "bg-[#04211C] dark:bg-emerald-500 text-white dark:text-[#04211C] border-[#04211C] dark:border-emerald-400" : "bg-white dark:bg-transparent text-emerald-900 dark:text-white border-gray-50 dark:border-emerald-500/10 hover:border-emerald-100"}`}>
+                      <span className="text-[9px] font-black uppercase opacity-60">{new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                      <span className="text-xs font-bold">{pad2(new Date(ts).getUTCHours())}:00 UTC</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mb-8">
+                <label className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 mb-3 block">{t.batchMint}</label>
+                <div className="grid grid-cols-3 gap-3">
+                  {[1, 5, 10].map(q => (
+                    <button key={q} onClick={() => setMintQuantity(q)} className={`py-3 rounded-xl border-2 font-black transition-all ${mintQuantity === q ? "bg-[#04211C] dark:bg-emerald-500 text-white dark:text-[#04211C] border-[#04211C] dark:border-emerald-400" : "bg-gray-50 dark:bg-emerald-500/5 border-gray-50 dark:border-emerald-500/10 text-emerald-900 dark:text-white"}`}>{q}x</button>
+                  ))}
                 </div>
               </div>
 
@@ -457,8 +449,8 @@ function App() {
               </div>
 
               <div className="bg-emerald-50 dark:bg-emerald-500/5 rounded-[2rem] p-8 border dark:border-emerald-500/10">
-                <div className="flex justify-between items-center mb-6"><span className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em]">{t.totalPrice}</span><span className="text-xl font-black dark:text-white">1.00 M-USDT</span></div>
-                <PrimaryButton onClick={handleMint} disabled={selectedNumbers.length < 4 || txStatus === 'mining'}>{account ? t.purchase : t.connect}</PrimaryButton>
+                <div className="flex justify-between items-center mb-6"><span className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em]">{t.totalPrice}</span><span className="text-xl font-black dark:text-white">{(mintQuantity * 1.0).toFixed(2)} M-USDT</span></div>
+                <PrimaryButton onClick={handleMint} disabled={selectedNumbers.length < 4 || txStatus === 'mining'}>{account ? `${t.purchase} (${mintQuantity}x)` : t.connect}</PrimaryButton>
                 <p className="mt-4 text-[10px] text-center opacity-40 uppercase tracking-widest dark:text-white">{t.gasFeesNote}</p>
               </div>
             </div>
@@ -466,42 +458,7 @@ function App() {
         </div>
       </main>
 
-      {/* HOW IT WORKS MODAL */}
-      {showGuideModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 bg-black/60 backdrop-blur-sm">
-          <div className="absolute inset-0" onClick={() => setShowGuideModal(false)} />
-          <div className="relative z-10 w-full max-w-4xl bg-white dark:bg-[#04211C] rounded-[2rem] md:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
-            <div className="p-6 md:p-12 border-b dark:border-emerald-500/10 flex items-center justify-between">
-              <div><h2 className="text-2xl md:text-3xl font-black font-display text-[#04211C] dark:text-white">{t.howItWorks}</h2><p className="text-xs font-bold text-emerald-800/40 dark:text-emerald-400/40 uppercase tracking-widest mt-1">Platform Guide & Rules</p></div>
-              <button onClick={() => setShowGuideModal(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 hover:bg-emerald-100 transition-colors"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-6 md:p-12 space-y-12 scrollbar-hide">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                <Step num={1} title={t.step1Title} desc={t.step1Desc} />
-                <Step num={2} title={t.step2Title} desc={t.step2Desc} />
-                <Step num={3} title={t.step3Title} desc={t.step3Desc} />
-                <Step num={4} title={t.step4Title} desc={t.step4Desc} />
-              </div>
-              <div className="pt-8 border-t dark:border-emerald-500/10">
-                <h3 className="text-lg font-black font-display mb-6 uppercase tracking-wider text-[#04211C] dark:text-white">{t.rules}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[t.rule1, t.rule2, t.rule3, t.rule4].map((rule, i) => (
-                    <div key={i} className="flex gap-4 p-4 rounded-2xl bg-emerald-50/40 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-500/10 text-sm font-medium text-emerald-900/60 dark:text-white/60 leading-relaxed">
-                      <span className="flex-shrink-0 h-6 w-6 rounded-lg bg-emerald-900 dark:bg-emerald-500 text-white dark:text-[#04211C] flex items-center justify-center text-[10px] font-black">{i + 1}</span>{rule}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="p-6 rounded-2xl md:rounded-3xl bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-500/20 shadow-sm">
-                <h3 className="text-[10px] md:text-sm font-black uppercase tracking-[0.2em] text-red-600 mb-4 flex items-center gap-2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>{t.disclaimer}</h3>
-                <p className="text-[10px] md:text-xs font-medium text-red-900/70 dark:text-red-300 leading-relaxed italic">{t.disclaimerText}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* RESULTS MODAL */}
+      {/* --- RESULTS MODAL --- */}
       {showResultsModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
           <div className="relative z-10 w-full max-w-lg bg-white dark:bg-[#04211C] rounded-[2rem] p-10 text-center shadow-2xl animate-in zoom-in-95 duration-300">
@@ -521,11 +478,11 @@ function App() {
         </div>
       )}
 
-      {/* PROFILE MODAL */}
+      {/* --- PROFILE MODAL --- */}
       {showProfileModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
           <div className="absolute inset-0" onClick={() => setShowProfileModal(false)} />
-          <div className="relative z-10 w-full max-w-4xl bg-[#F9FAFB] dark:bg-[#021411] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[95vh] animate-in zoom-in-95 duration-300">
+          <div className="relative z-10 w-full max-w-4xl bg-white dark:bg-[#04211C] rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
             <div className="p-12 border-b dark:border-emerald-500/10 bg-white dark:bg-[#04211C] flex flex-col md:flex-row items-center justify-between gap-8">
               <div className="flex items-center gap-8">
                 <img src={profile.avatarUrl} alt="Profile" className="h-32 w-32 rounded-full border-4 border-emerald-100 dark:border-emerald-500/20 shadow-lg object-cover" />
@@ -534,16 +491,38 @@ function App() {
                   <p className="text-xs font-bold text-[#0D6B58]/40 dark:text-white/30 uppercase tracking-widest mt-1 font-mono">{account}</p>
                 </div>
               </div>
-              <PrimaryButton onClick={() => setAccount(null)} variant="warning">{t.logout}</PrimaryButton>
+              <div className="flex flex-col gap-2">
+                <PrimaryButton onClick={() => setIsEditingProfile(!isEditingProfile)} variant="outline">{isEditingProfile ? t.save : "Edit Profile"}</PrimaryButton>
+                <PrimaryButton onClick={() => setAccount(null)} variant="warning">{t.logout}</PrimaryButton>
+              </div>
             </div>
-            
-            <div className="flex-1 overflow-y-auto p-12 space-y-12 scrollbar-hide">
-               <section className="bg-white dark:bg-[#04211C] p-8 rounded-[2rem] border border-emerald-100 dark:border-emerald-500/10 shadow-sm relative overflow-hidden">
-                  <div className="relative z-10">
-                    <h3 className="text-xl font-black font-display mb-6 dark:text-white">{t.earningsSection}</h3>
+            {account && (
+              <div className="p-12 space-y-8 bg-gray-50/50 dark:bg-[#021411]/50">
+                {isEditingProfile ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-top-4">
+                    <div className="space-y-4">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 block">Display Name</label>
+                      <input className="w-full bg-white dark:bg-[#04211C] border border-emerald-100 dark:border-emerald-500/10 rounded-xl px-4 py-3 font-bold" value={profile.username} onChange={e => setProfile({...profile, username: e.target.value})} />
+                      <label className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 block mt-4">Bio</label>
+                      <textarea className="w-full bg-white dark:bg-[#04211C] border border-emerald-100 dark:border-emerald-500/10 rounded-xl px-4 py-3 font-medium h-24" value={profile.bio} onChange={e => setProfile({...profile, bio: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 block mb-4">Select Avatar</label>
+                      <div className="grid grid-cols-3 gap-4">
+                        {PRELOADED_AVATARS.map(url => (
+                          <button key={url} onClick={() => setProfile({...profile, avatarUrl: url})} className={`rounded-xl overflow-hidden border-4 transition-all ${profile.avatarUrl === url ? 'border-emerald-500 scale-105 shadow-lg' : 'border-transparent opacity-50'}`}>
+                            <img src={url} alt="preset" className="w-full aspect-square object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <section className="bg-white dark:bg-[#04211C] p-8 rounded-[2rem] border border-emerald-100 dark:border-emerald-500/10 shadow-sm">
+                    <h3 className="text-xl font-black font-display mb-6 dark:text-white">Earnings & Referral</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                        <div className="space-y-4">
-                          <label className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 block">{t.referralLink}</label>
+                          <label className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 block">Your Referral Link</label>
                           <div className="flex gap-2">
                              <div className="flex-1 bg-gray-50 dark:bg-emerald-500/5 px-4 py-3 rounded-xl text-xs font-mono dark:text-white truncate border dark:border-emerald-500/10">
                                 {account ? `${window.location.origin}${window.location.pathname}?ref=${account}` : '...'}
@@ -554,7 +533,7 @@ function App() {
                        <div className="p-6 rounded-2xl bg-[#04211C] text-white shadow-xl">
                           <div className="flex justify-between items-center mb-6">
                              <div>
-                               <span className="text-[9px] font-black uppercase tracking-widest opacity-40 block mb-1">{t.totalEarned}</span>
+                               <span className="text-[9px] font-black uppercase tracking-widest opacity-40 block mb-1">Total Earned</span>
                                <span className="text-2xl font-black">{referralBalance.total.toFixed(2)} M-USDT</span>
                              </div>
                              <div className="text-right">
@@ -565,9 +544,10 @@ function App() {
                           <PrimaryButton variant="success">{t.claimAll}</PrimaryButton>
                        </div>
                     </div>
-                  </div>
-               </section>
-            </div>
+                  </section>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
