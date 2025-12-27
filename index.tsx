@@ -14,6 +14,7 @@ const PRELOADED_AVATARS = [
 ];
 
 const COINGECKO_API_URL = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd";
+const TICKET_PRICE_BTC = 0.00005;
 
 // --- UTILS ---
 const pad2 = (n: number) => String(n).padStart(2, "0");
@@ -291,12 +292,10 @@ function App() {
     if (account && isCorrectChain) {
       fetchContractData();
     } else {
-      // Clear data if not connected or on wrong chain
       setJackpot(0);
       setTickets([]);
     }
     
-    // Setup event listener if connected correctly
     if (contract && account && isCorrectChain) {
         const filter = contract.filters.TicketMinted(account);
         const handleMintEvent = () => fetchContractData();
@@ -307,11 +306,9 @@ function App() {
 
   useEffect(() => {
     if (window.ethereum) {
-      // Listen for account changes
       window.ethereum.on('accountsChanged', (accs: string[]) => {
         setAccount(accs[0] || null);
       });
-      // Listen for chain changes
       window.ethereum.on('chainChanged', (cid: string) => {
         setChainId(cid);
       });
@@ -394,7 +391,6 @@ function App() {
           setAccount(accs[0]);
           const cid = await window.ethereum.request({ method: 'eth_chainId' });
           setChainId(cid);
-          // Automatic switch is removed. UI will prompt if necessary.
         }
       } catch (e) { 
         console.error("Wallet connection failed", e); 
@@ -425,7 +421,7 @@ function App() {
         const signer = await provider.getSigner();
         const contractWithSigner = contract.connect(signer) as ethers.Contract;
         
-        const ticketPrice = ethers.parseUnits("0.0001", "ether"); 
+        const ticketPrice = ethers.parseUnits(TICKET_PRICE_BTC.toString(), "ether"); 
 
         const tx = await contractWithSigner.mintTicket(
             selectedNumbers,
@@ -515,56 +511,80 @@ function App() {
   };
 
   const TicketCard: React.FC<{ ticket: any }> = ({ ticket }) => {
-      const isPast = ticket.slot < Date.now();
-      const winningNumbers = isPast ? getWinningNumbersForSlot(ticket.slot) : null;
-      
-      const isWinner = useMemo(() => {
-          if (!winningNumbers) return false;
-          return JSON.stringify([...ticket.numbers].sort()) === JSON.stringify([...winningNumbers].sort());
-      }, [ticket.numbers, winningNumbers]);
-
-      const matchingNumbers = useMemo(() => {
-          if (!winningNumbers) return 0;
-          return ticket.numbers.filter((n: number) => winningNumbers.includes(n)).length;
-      }, [ticket.numbers, winningNumbers]);
-
-      return (
-          <div className={`bg-white dark:bg-[#031814] p-6 rounded-2xl border ${isWinner && !ticket.claimed ? 'border-yellow-400 shadow-lg' : 'dark:border-emerald-500/10'}`}>
-              <div className="flex justify-between items-center mb-4">
-                  <span className="text-[10px] font-black opacity-30 dark:text-white/30">#{ticket.id}</span>
-                  {isWinner && <Pill variant="gold">{t.winner}</Pill>}
-                  {isPast && !isWinner && <Pill variant="danger">{matchingNumbers} {t.matching}</Pill>}
-                  {!isPast && <Pill variant="mint">{formatDate(ticket.slot)}</Pill>}
-              </div>
-              <div className="flex gap-2 justify-center mb-4">
-                  {ticket.numbers.map((n: number, i: number) => (
-                      <div key={i} className={`h-10 w-10 rounded-lg flex items-center justify-center font-black dark:text-white border ${winningNumbers && winningNumbers.includes(n) ? 'bg-emerald-200 dark:bg-emerald-500 ring-2 ring-emerald-400' : 'bg-white dark:bg-black/20'} dark:border-white/10`}>{n}</div>
-                  ))}
-              </div>
-
-              {isWinner && (
-                  <div className="mt-4">
-                      {ticket.claimed ? (
-                          <div className="py-2 text-center rounded-lg bg-gray-100 dark:bg-gray-700 text-xs font-bold uppercase tracking-wider text-gray-400">{t.claimed}</div>
-                      ) : (
-                          <PrimaryButton onClick={() => handleClaim(ticket.id)} loading={claimStatus[ticket.id] === 'claiming'} variant="gold">
-                              {t.claimPrize}
-                          </PrimaryButton>
-                      )}
-                  </div>
-              )}
-              {isPast && !isWinner && (
-                   <div className="mt-4 text-center">
-                      <p className="text-[9px] font-bold text-emerald-800/30 dark:text-white/30 uppercase tracking-widest mb-1">{t.winningNums}</p>
-                      <div className="flex gap-1 justify-center">
-                          {winningNumbers?.map((n, i) => (
-                              <div key={i} className="h-6 w-6 rounded-md bg-gray-100 dark:bg-white/10 text-emerald-700 dark:text-emerald-400 flex items-center justify-center text-xs font-bold">{n}</div>
-                          ))}
-                      </div>
-                  </div>
-              )}
-          </div>
-      );
+    const isPast = ticket.slot < Date.now();
+    const winningNumbers = isPast ? getWinningNumbersForSlot(ticket.slot) : null;
+    const isWinner = useMemo(() => {
+        if (!winningNumbers) return false;
+        return JSON.stringify([...ticket.numbers].sort()) === JSON.stringify([...winningNumbers].sort());
+    }, [ticket.numbers, winningNumbers]);
+  
+    const hue = useMemo(() => parseInt(ticket.id.slice(0, 6), 16) % 360, [ticket.id]);
+    const gradientStyle = {
+        background: `linear-gradient(135deg, hsl(${hue}, 70%, 50%), hsl(${(hue + 45) % 360}, 80%, 60%))`
+    };
+  
+    const status = isWinner ? 'winner' : isPast ? 'played' : 'upcoming';
+  
+    return (
+        <div className={`rounded-3xl border-2 overflow-hidden shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 ${
+            isWinner && !ticket.claimed ? 'border-yellow-400 ring-4 ring-yellow-400/20' : 'dark:border-emerald-500/10 border-gray-100'
+        }`}>
+            <div className="p-6 text-white relative" style={gradientStyle}>
+                <svg className="absolute inset-0 w-full h-full opacity-10" width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="25" cy="25" r="1" fill="white"/> <circle cx="75" cy="75" r="1" fill="white"/>
+                    <circle cx="25" cy="75" r="1" fill="white"/> <circle cx="75" cy="25" r="1" fill="white"/>
+                    <path d="M0 50 H100 M50 0 V100" stroke="white" strokeWidth="0.2" />
+                </svg>
+  
+                <div className="relative z-10">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h3 className="font-bold font-display text-lg">OnChain Jackpot</h3>
+                            <p className="text-xs opacity-60 font-mono">#{ticket.id}</p>
+                        </div>
+                        {status === 'winner' && <Pill variant="gold">{t.winner}</Pill>}
+                        {status === 'upcoming' && <Pill variant="mint">UPCOMING</Pill>}
+                        {status === 'played' && <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider whitespace-nowrap bg-black/10 text-white/70 border border-white/20">PLAYED</span>}
+                    </div>
+  
+                    <div className="flex justify-center gap-3 my-8">
+                        {ticket.numbers.map((n: number, i: number) => (
+                            <div key={i} className="h-16 w-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center text-3xl font-black border border-white/30 shadow-md">
+                                {n}
+                            </div>
+                        ))}
+                    </div>
+  
+                    <div>
+                        <p className="text-xs font-bold uppercase tracking-widest opacity-60 text-center">Draw Date</p>
+                        <p className="text-center font-bold">{formatDate(ticket.slot)} - {formatTime(ticket.slot)}</p>
+                    </div>
+                </div>
+            </div>
+  
+            {isWinner && (
+                <div className="p-4 bg-white dark:bg-[#031814]">
+                    {ticket.claimed ? (
+                        <div className="py-2 text-center rounded-lg bg-gray-100 dark:bg-gray-700 text-xs font-bold uppercase tracking-wider text-gray-400">{t.claimed}</div>
+                    ) : (
+                        <PrimaryButton onClick={() => handleClaim(ticket.id)} loading={claimStatus[ticket.id] === 'claiming'} variant="gold">
+                            {t.claimPrize}
+                        </PrimaryButton>
+                    )}
+                </div>
+            )}
+            {isPast && !isWinner && (
+                <div className="p-4 text-center bg-gray-50 dark:bg-[#021411]">
+                    <p className="text-[9px] font-bold text-emerald-800/40 dark:text-white/30 uppercase tracking-widest mb-2">{t.winningNums}</p>
+                    <div className="flex gap-1.5 justify-center">
+                        {winningNumbers?.map((n, i) => (
+                            <div key={i} className="h-8 w-8 rounded-lg bg-gray-200 dark:bg-white/10 text-emerald-700 dark:text-emerald-400 flex items-center justify-center text-sm font-bold">{n}</div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
   };
 
   return (
@@ -642,14 +662,11 @@ function App() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-12">
           <div className="lg:col-span-7 bg-white dark:bg-[#04211C] rounded-[2.5rem] border border-gray-100 dark:border-emerald-500/10 p-10 shadow-xl min-h-[400px]">
             <h2 className="text-2xl font-bold font-display dark:text-white">{t.myTickets} ({tickets.length})</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
               {tickets.length === 0 ? (
-                <div className="col-span-2 py-20 text-center opacity-30 uppercase tracking-widest text-xs font-black">No Tickets Found</div>
+                <div className="md:col-span-2 py-20 text-center opacity-30 uppercase tracking-widest text-xs font-black">No Tickets Found</div>
               ) : tickets.map(tk => (
-                <div key={tk.id} className="p-6 bg-emerald-50/20 dark:bg-emerald-500/5 border dark:border-emerald-500/10 rounded-2xl">
-                  <div className="flex justify-between items-center mb-4"><span className="text-[10px] font-black opacity-30">#{tk.id}</span><Pill variant="mint">{new Date(tk.slot).toLocaleDateString()}</Pill></div>
-                  <div className="flex gap-2 justify-center mb-4">{tk.numbers.map((n: number, i: number) => (<div key={i} className="h-10 w-10 rounded-lg bg-white dark:bg-black/20 flex items-center justify-center font-black dark:text-white border dark:border-white/10">{n}</div>))}</div>
-                </div>
+                <TicketCard key={tk.id} ticket={tk} />
               ))}
             </div>
           </div>
@@ -692,7 +709,17 @@ function App() {
               </div>
 
               <div className="bg-emerald-50 dark:bg-emerald-500/5 rounded-[2rem] p-8 border dark:border-emerald-500/10">
-                <div className="flex justify-between items-center mb-6"><span className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em]">{t.totalPrice}</span><span className="text-xl font-black dark:text-white">0.0001 BTC</span></div>
+                <div className="flex justify-between items-center mb-6">
+                  <span className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em]">{t.totalPrice}</span>
+                  <div className="text-right">
+                    <span className="text-xl font-black dark:text-white">{TICKET_PRICE_BTC} BTC</span>
+                    {btcPrice && (
+                      <p className="text-xs font-medium text-emerald-600/60 dark:text-emerald-400/60">
+                        ({(TICKET_PRICE_BTC * btcPrice).toLocaleString('en-US', { style: 'currency', currency: 'USD' })})
+                      </p>
+                    )}
+                  </div>
+                </div>
                 <PrimaryButton onClick={handleMint} disabled={selectedNumbers.length < 4 || txStatus === 'mining' || txStatus === 'awaiting'}>{account ? t.purchase : t.connect}</PrimaryButton>
                 <p className="mt-4 text-[10px] text-center opacity-40 uppercase tracking-widest dark:text-white">{t.gasFeesNote}</p>
               </div>
