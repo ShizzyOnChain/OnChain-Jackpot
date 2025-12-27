@@ -90,7 +90,7 @@ const Pill: React.FC<{ children: React.ReactNode; variant?: 'default' | 'gold' |
   };
   const s = styles[variant];
   return (
-    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider whitespace-nowrap" style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
+    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider whitespace-nowrap dark:border-emerald-500/30" style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
       {children}
     </span>
   );
@@ -108,7 +108,7 @@ const PrimaryButton: React.FC<{ children: React.ReactNode; onClick?: () => void;
   };
   const s = getStyles();
   return (
-    <button disabled={disabled || loading} onClick={onClick} className={`w-full rounded-2xl px-4 py-3 text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2`} style={{ background: s.bg, color: s.color || 'white', border: s.border || 'none', boxShadow: s.shadow }}>
+    <button disabled={disabled || loading} onClick={onClick} className={`w-full rounded-2xl px-4 py-3 text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2 dark:border-emerald-500/20 dark:text-emerald-50`} style={{ background: s.bg, color: s.color || 'white', border: s.border || 'none', boxShadow: s.shadow }}>
       {loading ? <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" /> : children}
     </button>
   );
@@ -116,14 +116,15 @@ const PrimaryButton: React.FC<{ children: React.ReactNode; onClick?: () => void;
 
 const TimeDisplay = ({ value, label }: { value: string, label: string }) => (
   <div className="flex flex-col items-center">
-    <div className="text-4xl font-black font-display tracking-tighter" style={{ color: COLORS.midnight }}>{value}</div>
-    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600/50">{label}</span>
+    <div className="text-4xl font-black font-display tracking-tighter dark:text-emerald-50" style={{ color: COLORS.midnight }}>{value}</div>
+    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600/50 dark:text-emerald-500/40">{label}</span>
   </div>
 );
 
 // --- MAIN APP ---
 function App() {
   const [lang, setLang] = useState<'en' | 'zh'>('en');
+  const [isDark, setIsDark] = useState(() => localStorage.getItem('theme') === 'dark');
   const [account, setAccount] = useState<string | null>(null);
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
   const [mintQuantity, setMintQuantity] = useState(1);
@@ -153,6 +154,17 @@ function App() {
   const [liveLotteryNumbers, setLiveLotteryNumbers] = useState<(number | null)[]>([null, null, null, null]);
   const [lotteryPhase, setLotteryPhase] = useState(0); 
   const [isRevealing, setIsRevealing] = useState(false);
+
+  // Sync dark mode
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDark]);
 
   // Load wallet-specific data
   useEffect(() => {
@@ -429,31 +441,38 @@ function App() {
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-lg border-b border-gray-100 px-8 py-4 flex items-center justify-between">
+      <header className="sticky top-0 z-50 bg-white/90 dark:bg-[#04211C]/90 backdrop-blur-lg border-b border-gray-100 dark:border-emerald-500/10 px-8 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4 cursor-pointer" onClick={() => window.location.reload()}>
           <Logo size={48} />
           <div className="hidden sm:block">
-            <h1 className="text-xl font-bold font-display" style={{ color: COLORS.midnight }}>{t.title}</h1>
-            <p className="text-[10px] font-bold text-[#0D6B58] uppercase tracking-widest mt-1">MERLINCHAIN MAINNET</p>
+            <h1 className="text-xl font-bold font-display dark:text-emerald-50" style={{ color: COLORS.midnight }}>{t.title}</h1>
+            <p className="text-[10px] font-bold text-[#0D6B58] dark:text-emerald-400 uppercase tracking-widest mt-1">MERLINCHAIN MAINNET</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <button onClick={() => setShowResultsModal(true)} className="px-4 py-2 border border-[#7FE6C3] rounded-xl text-[11px] font-black uppercase tracking-widest text-[#04211C] transition-all hover:bg-emerald-50">{t.viewResults}</button>
-          <button onClick={() => setShowGuideModal(true)} className="px-4 py-2 border border-[#7FE6C3] rounded-xl text-[11px] font-black uppercase tracking-widest text-[#04211C] transition-all hover:bg-emerald-50">{t.howItWorks}</button>
-          <button onClick={() => setLang(lang === 'en' ? 'zh' : 'en')} className="px-3 py-2 border border-[#7FE6C3] rounded-xl text-[11px] font-black">{lang === 'en' ? '中文' : 'EN'}</button>
+          <button onClick={() => setShowResultsModal(true)} className="px-4 py-2 border border-[#7FE6C3] dark:border-emerald-500/30 rounded-xl text-[11px] font-black uppercase tracking-widest text-[#04211C] dark:text-emerald-50 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-500/10">{t.viewResults}</button>
+          <button onClick={() => setShowGuideModal(true)} className="px-4 py-2 border border-[#7FE6C3] dark:border-emerald-500/30 rounded-xl text-[11px] font-black uppercase tracking-widest text-[#04211C] dark:text-emerald-50 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-500/10">{t.howItWorks}</button>
+          <button onClick={() => setLang(lang === 'en' ? 'zh' : 'en')} className="px-3 py-2 border border-[#7FE6C3] dark:border-emerald-500/30 rounded-xl text-[11px] font-black dark:text-emerald-50">{lang === 'en' ? '中文' : 'EN'}</button>
+          <button onClick={() => setIsDark(!isDark)} className="p-2 rounded-xl border border-[#7FE6C3] dark:border-emerald-500/30 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-500/10">
+            {isDark ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-midnight"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            )}
+          </button>
           {account ? (
-            <button onClick={() => setShowProfileModal(true)} className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-800 font-bold text-sm shadow-sm transition-all hover:bg-emerald-100">
-              <img src={profile.avatarUrl} alt="Avatar" className="h-7 w-7 rounded-full border border-emerald-200 object-cover" />
+            <button onClick={() => setShowProfileModal(true)} className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-emerald-100 dark:border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/5 text-emerald-800 dark:text-emerald-100 font-bold text-sm shadow-sm transition-all hover:bg-emerald-100 dark:hover:bg-emerald-500/10">
+              <img src={profile.avatarUrl} alt="Avatar" className="h-7 w-7 rounded-full border border-emerald-200 dark:border-emerald-500/30 object-cover" />
               <span className="hidden sm:inline max-w-[120px] truncate">{profile.username}</span>
             </button>
           ) : (
-            <button onClick={connectWallet} className="bg-[#04211C] text-white px-6 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all active:scale-95">{t.connect}</button>
+            <button onClick={connectWallet} className="bg-[#04211C] dark:bg-emerald-500 text-white dark:text-[#04211C] px-6 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all active:scale-95">{t.connect}</button>
           )}
         </div>
       </header>
 
-      <div className="bg-[#E9FFF6] py-1.5 border-b border-[#7FE6C3]/20 overflow-hidden h-8 flex items-center">
-        <div className="animate-marquee flex whitespace-nowrap gap-12 text-[10px] font-bold uppercase tracking-widest text-emerald-800/40">
+      <div className="bg-[#E9FFF6] dark:bg-emerald-950/20 py-1.5 border-b border-[#7FE6C3]/20 dark:border-emerald-500/10 overflow-hidden h-8 flex items-center transition-colors">
+        <div className="animate-marquee flex whitespace-nowrap gap-12 text-[10px] font-bold uppercase tracking-widest text-emerald-800/40 dark:text-emerald-500/30">
            <div className="flex items-center gap-2">
              <span className="text-emerald-500/20">●</span>
              <span>{t.liveActivity} INITIALIZING...</span>
@@ -462,24 +481,24 @@ function App() {
       </div>
 
       <main className="max-w-7xl mx-auto px-8 mt-12">
-        <section className="bg-white rounded-[3rem] border border-gray-100 p-12 shadow-2xl relative overflow-hidden flex flex-col lg:flex-row gap-12 items-center">
+        <section className="bg-white dark:bg-[#04211C] rounded-[3rem] border border-gray-100 dark:border-emerald-500/10 p-12 shadow-2xl relative overflow-hidden flex flex-col lg:flex-row gap-12 items-center transition-colors">
           <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none scale-150 rotate-12"><Logo size={300} /></div>
           <div className="flex-1 relative z-10">
-            <div className="inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider bg-[#E9FFF6] text-[#0D6B58] border border-[#7FE6C3]">
+            <div className="inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider bg-[#E9FFF6] dark:bg-emerald-500/10 text-[#0D6B58] dark:text-emerald-400 border border-[#7FE6C3] dark:border-emerald-500/20">
               <span className="h-1.5 w-1.5 rounded-full bg-current mr-2 animate-pulse" />
               LIVE STATUS
             </div>
-            <h2 className="text-6xl font-black font-display text-[#04211C] mt-8 leading-[1.05] tracking-tight">{t.heroTitle}</h2>
-            <p className="mt-8 text-lg font-medium text-[#0D6B58] opacity-60 max-w-lg leading-relaxed">{t.heroSubtitle}</p>
+            <h2 className="text-6xl font-black font-display text-[#04211C] dark:text-emerald-50 mt-8 leading-[1.05] tracking-tight">{t.heroTitle}</h2>
+            <p className="mt-8 text-lg font-medium text-[#0D6B58] dark:text-emerald-400/60 opacity-60 max-w-lg leading-relaxed">{t.heroSubtitle}</p>
             <div className="mt-12 flex gap-16">
-              <div><div className="text-3xl font-black font-display" style={{ color: COLORS.midnight }}>{stats.totalMints.toLocaleString()}</div><div className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 mt-1">{t.totalMints}</div></div>
-              <div><div className="text-3xl font-black font-display" style={{ color: COLORS.midnight }}>{stats.activePlayers.toLocaleString()}</div><div className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 mt-1">{t.activePlayers}</div></div>
+              <div><div className="text-3xl font-black font-display dark:text-emerald-100" style={{ color: COLORS.midnight }}>{stats.totalMints.toLocaleString()}</div><div className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 dark:text-emerald-500/30 mt-1">{t.totalMints}</div></div>
+              <div><div className="text-3xl font-black font-display dark:text-emerald-100" style={{ color: COLORS.midnight }}>{stats.activePlayers.toLocaleString()}</div><div className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 dark:text-emerald-500/30 mt-1">{t.activePlayers}</div></div>
             </div>
           </div>
 
           <div className="w-full lg:w-[480px] relative group">
             <div className="absolute -inset-1 bg-emerald-500/10 rounded-[3.5rem] blur-xl group-hover:bg-emerald-500/20 transition-all duration-500" />
-            <div className="relative bg-[#04211C] rounded-[3rem] p-12 text-white shadow-2xl border border-emerald-500/20 overflow-hidden">
+            <div className="relative bg-[#04211C] dark:bg-black rounded-[3rem] p-12 text-white shadow-2xl border border-emerald-500/20 overflow-hidden">
               <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'linear-gradient(rgba(16, 185, 129, 0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(16, 185, 129, 0.5) 1px, transparent 1px)', backgroundSize: '12px 12px' }} />
               <div className="absolute -right-20 -bottom-20 opacity-10 rotate-12 pointer-events-none"><Logo size={320} /></div>
               
@@ -508,37 +527,37 @@ function App() {
           </div>
         </section>
 
-        <div className="mt-12 bg-white rounded-[2rem] border border-gray-100 p-8 flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl">
+        <div className="mt-12 bg-white dark:bg-[#04211C] rounded-[2rem] border border-gray-100 dark:border-emerald-500/10 p-8 flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl transition-colors">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-emerald-50 rounded-2xl text-emerald-800"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-            <div><h3 className="font-bold text-lg" style={{ color: COLORS.midnight }}>{t.countdownTitle}</h3><p className="text-xs font-medium text-gray-400">{t.countdownSub}</p></div>
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl text-emerald-800 dark:text-emerald-400"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            <div><h3 className="font-bold text-lg dark:text-emerald-50" style={{ color: COLORS.midnight }}>{t.countdownTitle}</h3><p className="text-xs font-medium text-gray-400 dark:text-emerald-500/40">{t.countdownSub}</p></div>
           </div>
           <div className="flex gap-4">
-            <TimeDisplay value={pad2(timeLeft.days)} label={t.days} /><div className="text-4xl font-black font-display opacity-20" style={{ color: COLORS.midnight }}>:</div>
-            <TimeDisplay value={pad2(timeLeft.hours)} label={t.hours} /><div className="text-4xl font-black font-display opacity-20" style={{ color: COLORS.midnight }}>:</div>
-            <TimeDisplay value={pad2(timeLeft.minutes)} label={t.minutes} /><div className="text-4xl font-black font-display opacity-20" style={{ color: COLORS.midnight }}>:</div>
+            <TimeDisplay value={pad2(timeLeft.days)} label={t.days} /><div className="text-4xl font-black font-display opacity-20 dark:text-emerald-100" style={{ color: COLORS.midnight }}>:</div>
+            <TimeDisplay value={pad2(timeLeft.hours)} label={t.hours} /><div className="text-4xl font-black font-display opacity-20 dark:text-emerald-100" style={{ color: COLORS.midnight }}>:</div>
+            <TimeDisplay value={pad2(timeLeft.minutes)} label={t.minutes} /><div className="text-4xl font-black font-display opacity-20 dark:text-emerald-100" style={{ color: COLORS.midnight }}>:</div>
             <TimeDisplay value={pad2(timeLeft.seconds)} label={t.seconds} />
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-12 mb-20">
-          <div className="lg:col-span-7 bg-white rounded-[2.5rem] border border-gray-100 p-10 shadow-xl min-h-[500px]">
-            <h2 className="text-2xl font-bold font-display" style={{ color: COLORS.midnight }}>{t.historyTitle}</h2>
-            <p className="mt-2 text-sm font-medium text-[#0D6B58] opacity-40">{t.historySub}</p>
-            <div className="mt-12 border-2 border-dashed border-gray-100 rounded-[2rem] p-20 flex flex-col items-center text-center">
-              <span className="text-xs font-black text-gray-200 uppercase tracking-[0.3em] mb-4">{t.historyNoData}</span>
-              <p className="text-[10px] font-bold text-gray-300 max-w-[240px] leading-relaxed tracking-wide uppercase">{t.historyAuto}</p>
+          <div className="lg:col-span-7 bg-white dark:bg-[#04211C] rounded-[2.5rem] border border-gray-100 dark:border-emerald-500/10 p-10 shadow-xl min-h-[500px] transition-colors">
+            <h2 className="text-2xl font-bold font-display dark:text-emerald-50" style={{ color: COLORS.midnight }}>{t.historyTitle}</h2>
+            <p className="mt-2 text-sm font-medium text-[#0D6B58] dark:text-emerald-400/60 opacity-40">{t.historySub}</p>
+            <div className="mt-12 border-2 border-dashed border-gray-100 dark:border-emerald-500/10 rounded-[2rem] p-20 flex flex-col items-center text-center">
+              <span className="text-xs font-black text-gray-200 dark:text-emerald-500/10 uppercase tracking-[0.3em] mb-4">{t.historyNoData}</span>
+              <p className="text-[10px] font-bold text-gray-300 dark:text-emerald-500/20 max-w-[240px] leading-relaxed tracking-wide uppercase">{t.historyAuto}</p>
             </div>
           </div>
 
-          <div className="lg:col-span-5 bg-white rounded-[2.5rem] border border-gray-100 p-10 shadow-xl h-fit">
-            <h2 className="text-2xl font-bold font-display mb-8" style={{ color: COLORS.midnight }}>{t.mintTitle}</h2>
+          <div className="lg:col-span-5 bg-white dark:bg-[#04211C] rounded-[2.5rem] border border-gray-100 dark:border-emerald-500/10 p-10 shadow-xl h-fit transition-colors">
+            <h2 className="text-2xl font-bold font-display mb-8 dark:text-emerald-50" style={{ color: COLORS.midnight }}>{t.mintTitle}</h2>
             
             <div className="mb-8">
-              <label className="text-[10px] font-black uppercase opacity-30 tracking-widest mb-4 block">{t.selectSchedule}</label>
+              <label className="text-[10px] font-black uppercase opacity-30 dark:opacity-40 tracking-widest mb-4 block dark:text-emerald-400">{t.selectSchedule}</label>
               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                 {lotterySlots.map(ts => (
-                  <button key={ts} onClick={() => setSelectedSlot(ts)} className={`flex-shrink-0 p-4 rounded-2xl border-2 transition-all flex flex-col items-center min-w-[120px] ${selectedSlot === ts ? "bg-[#04211C] text-white border-[#04211C] shadow-lg" : "bg-white border-gray-50 text-[#04211C] hover:border-[#7FE6C3]"}`}>
+                  <button key={ts} onClick={() => setSelectedSlot(ts)} className={`flex-shrink-0 p-4 rounded-2xl border-2 transition-all flex flex-col items-center min-w-[120px] ${selectedSlot === ts ? "bg-[#04211C] dark:bg-emerald-500 text-white dark:text-[#04211C] border-[#04211C] dark:border-emerald-400 shadow-lg" : "bg-white dark:bg-emerald-500/5 border-gray-50 dark:border-emerald-500/10 text-[#04211C] dark:text-emerald-50 hover:border-[#7FE6C3] dark:hover:border-emerald-500/40"}`}>
                     <span className="text-[9px] font-black uppercase opacity-60 tracking-widest mb-1">{new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                     <span className="text-xs font-bold">{pad2(new Date(ts).getUTCHours())}:00 UTC</span>
                   </button>
@@ -547,10 +566,10 @@ function App() {
             </div>
 
             <div className="mb-8">
-              <label className="text-[10px] font-black uppercase opacity-30 tracking-widest mb-4 block">{t.batchMint}</label>
-              <div className="flex p-1 bg-gray-50 rounded-2xl border border-gray-100">
+              <label className="text-[10px] font-black uppercase opacity-30 dark:opacity-40 tracking-widest mb-4 block dark:text-emerald-400">{t.batchMint}</label>
+              <div className="flex p-1 bg-gray-50 dark:bg-emerald-500/5 rounded-2xl border border-gray-100 dark:border-emerald-500/10">
                 {[1, 5, 10, 20, 50].map(q => (
-                  <button key={q} onClick={() => setMintQuantity(q)} className={`flex-1 py-3 text-xs font-black rounded-xl transition-all ${mintQuantity === q ? 'bg-white shadow-md text-[#04211C]' : 'text-gray-400 hover:text-gray-600'}`}>
+                  <button key={q} onClick={() => setMintQuantity(q)} className={`flex-1 py-3 text-xs font-black rounded-xl transition-all ${mintQuantity === q ? 'bg-white dark:bg-emerald-500 shadow-md text-[#04211C] dark:text-[#04211C]' : 'text-gray-400 dark:text-emerald-500/40 hover:text-gray-600 dark:hover:text-emerald-50'}`}>
                     {q}x
                   </button>
                 ))}
@@ -558,25 +577,25 @@ function App() {
             </div>
 
             <div className="mb-8">
-              <label className="text-[10px] font-black uppercase opacity-30 tracking-widest mb-4 block">{t.select4}</label>
+              <label className="text-[10px] font-black uppercase opacity-30 dark:opacity-40 tracking-widest mb-4 block dark:text-emerald-400">{t.select4}</label>
               <div className="grid grid-cols-3 gap-3">
                 {[1,2,3,4,5,6,7,8,9].map(n => (
-                  <button key={n} onClick={() => toggleNumber(n)} className={`h-16 rounded-2xl flex items-center justify-center text-xl font-black transition-all border-2 active:scale-95 ${selectedNumbers.includes(n) ? "bg-[#04211C] text-white border-[#04211C]" : "bg-white border-gray-50 text-[#04211C] hover:border-[#7FE6C3]"}`}>{n}</button>
+                  <button key={n} onClick={() => toggleNumber(n)} className={`h-16 rounded-2xl flex items-center justify-center text-xl font-black transition-all border-2 active:scale-95 ${selectedNumbers.includes(n) ? "bg-[#04211C] dark:bg-emerald-500 text-white dark:text-[#04211C] border-[#04211C] dark:border-emerald-400" : "bg-white dark:bg-emerald-500/5 border-gray-50 dark:border-emerald-500/10 text-[#04211C] dark:text-emerald-50 hover:border-[#7FE6C3] dark:hover:border-emerald-500/40"}`}>{n}</button>
                 ))}
               </div>
               <div className="grid grid-cols-2 gap-3 mt-4">
-                <button onClick={handleShufflePick} className="py-3 px-4 border border-gray-100 rounded-xl font-bold text-[10px] uppercase tracking-widest text-gray-400 hover:bg-gray-50 transition-all">{t.shuffle}</button>
-                <button onClick={handleAiPick} disabled={aiLoading} className="py-3 px-4 bg-violet-50 text-violet-800 rounded-xl font-bold text-[10px] uppercase tracking-widest border border-violet-100 flex items-center justify-center gap-2 transition-all hover:bg-violet-100 disabled:opacity-50">
-                  {aiLoading ? <div className="h-3 w-3 border-2 border-violet-800 border-t-transparent rounded-full animate-spin" /> : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z"></path></svg>}
+                <button onClick={handleShufflePick} className="py-3 px-4 border border-gray-100 dark:border-emerald-500/10 rounded-xl font-bold text-[10px] uppercase tracking-widest text-gray-400 dark:text-emerald-500/40 hover:bg-gray-50 dark:hover:bg-emerald-500/10 transition-all">{t.shuffle}</button>
+                <button onClick={handleAiPick} disabled={aiLoading} className="py-3 px-4 bg-violet-50 dark:bg-violet-500/10 text-violet-800 dark:text-violet-400 rounded-xl font-bold text-[10px] uppercase tracking-widest border border-violet-100 dark:border-violet-500/20 flex items-center justify-center gap-2 transition-all hover:bg-violet-100 dark:hover:bg-violet-500/20 disabled:opacity-50">
+                  {aiLoading ? <div className="h-3 w-3 border-2 border-violet-800 dark:border-violet-400 border-t-transparent rounded-full animate-spin" /> : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z"></path></svg>}
                   {t.aiLucky}
                 </button>
               </div>
-              {aiReason && (<div className="mt-4 p-4 rounded-2xl bg-violet-50/50 border border-violet-100/50 text-violet-900/60 text-[10px] font-bold italic leading-relaxed animate-in fade-in">"{aiReason}"</div>)}
+              {aiReason && (<div className="mt-4 p-4 rounded-2xl bg-violet-50/50 dark:bg-violet-950/20 border border-violet-100/50 dark:border-violet-500/20 text-violet-900/60 dark:text-violet-400/60 text-[10px] font-bold italic leading-relaxed animate-in fade-in">"{aiReason}"</div>)}
             </div>
 
-            <div className="bg-emerald-50 rounded-[2rem] p-8 border border-emerald-100 mb-6">
-                <div className="flex justify-between items-center mb-2"><span className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em]">{t.totalPrice}</span><div className="flex items-baseline gap-2"><span className="text-2xl font-black text-emerald-900">{(mintQuantity * 1.0).toFixed(2)}</span><span className="text-[10px] font-black text-emerald-800/40">M-USDT</span></div></div>
-                <div className="text-right text-[9px] font-black text-emerald-800/20 uppercase tracking-widest">{t.gasFeesNote}</div>
+            <div className="bg-emerald-50 dark:bg-emerald-500/10 rounded-[2rem] p-8 border border-emerald-100 dark:border-emerald-500/20 mb-6">
+                <div className="flex justify-between items-center mb-2"><span className="text-[10px] font-black opacity-30 dark:opacity-40 uppercase tracking-[0.2em] dark:text-emerald-400">{t.totalPrice}</span><div className="flex items-baseline gap-2"><span className="text-2xl font-black text-emerald-900 dark:text-emerald-50">{(mintQuantity * 1.0).toFixed(2)}</span><span className="text-[10px] font-black text-emerald-800/40 dark:text-emerald-500/30">M-USDT</span></div></div>
+                <div className="text-right text-[9px] font-black text-emerald-800/20 dark:text-emerald-500/20 uppercase tracking-widest">{t.gasFeesNote}</div>
             </div>
 
             <PrimaryButton onClick={handleMint} loading={txStatus === 'mining'} disabled={selectedNumbers.length < 4 || txStatus === 'mining'}>{txStatus === 'mining' ? 'MINTING...' : t.purchase}</PrimaryButton>
@@ -589,57 +608,57 @@ function App() {
       {showGuideModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
           <div className="absolute inset-0" onClick={() => setShowGuideModal(false)} />
-          <div className="relative z-10 w-full max-w-4xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
-            <div className="p-8 md:p-12 border-b flex items-center justify-between">
+          <div className="relative z-10 w-full max-w-4xl bg-white dark:bg-[#04211C] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
+            <div className="p-8 md:p-12 border-b dark:border-emerald-500/10 flex items-center justify-between">
               <div>
-                <h2 className="text-3xl font-black font-display text-[#04211C]">{t.howItWorks}</h2>
-                <p className="text-sm font-medium opacity-40 uppercase tracking-widest mt-1">Platform Guidelines & Legal</p>
+                <h2 className="text-3xl font-black font-display text-[#04211C] dark:text-emerald-50">{t.howItWorks}</h2>
+                <p className="text-sm font-medium opacity-40 uppercase tracking-widest mt-1 dark:text-emerald-400">Platform Guidelines & Legal</p>
               </div>
-              <button onClick={() => setShowGuideModal(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors">
+              <button onClick={() => setShowGuideModal(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
             
             <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-12">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                <Step num={1} title={t.step1Title} desc={t.step1Desc} />
-                <Step num={2} title={t.step2Title} desc={t.step2Desc} />
-                <Step num={3} title={t.step3Title} desc={t.step3Desc} />
-                <Step num={4} title={t.step4Title} desc={t.step4Desc} />
+                <Step num={1} title={t.step1Title} desc={t.step1Desc} isDark={isDark} />
+                <Step num={2} title={t.step2Title} desc={t.step2Desc} isDark={isDark} />
+                <Step num={3} title={t.step3Title} desc={t.step3Desc} isDark={isDark} />
+                <Step num={4} title={t.step4Title} desc={t.step4Desc} isDark={isDark} />
               </div>
 
-              <div className="pt-8 border-t border-emerald-50">
-                <h3 className="text-xl font-black font-display mb-4 text-[#04211C] uppercase tracking-wider">{t.inDepthTitle}</h3>
-                <p className="text-sm font-medium text-emerald-900/60 leading-relaxed max-w-3xl mb-8">{t.howItWorksDetails}</p>
+              <div className="pt-8 border-t border-emerald-50 dark:border-emerald-500/10">
+                <h3 className="text-xl font-black font-display mb-4 text-[#04211C] dark:text-emerald-100 uppercase tracking-wider">{t.inDepthTitle}</h3>
+                <p className="text-sm font-medium text-emerald-900/60 dark:text-emerald-400/60 leading-relaxed max-w-3xl mb-8">{t.howItWorksDetails}</p>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-                  <div className="p-6 rounded-2xl bg-emerald-50/40 border border-emerald-100">
-                    <h4 className="font-black text-xs uppercase tracking-widest mb-3 text-emerald-800">{t.transparency}</h4>
-                    <p className="text-xs font-medium text-emerald-900/60 leading-relaxed">{t.transparencyDesc}</p>
+                  <div className="p-6 rounded-2xl bg-emerald-50/40 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-500/10">
+                    <h4 className="font-black text-xs uppercase tracking-widest mb-3 text-emerald-800 dark:text-emerald-300">{t.transparency}</h4>
+                    <p className="text-xs font-medium text-emerald-900/60 dark:text-emerald-400/50 leading-relaxed">{t.transparencyDesc}</p>
                   </div>
-                  <div className="p-6 rounded-2xl bg-emerald-50/40 border border-emerald-100">
-                    <h4 className="font-black text-xs uppercase tracking-widest mb-3 text-emerald-800">{t.riskTitle}</h4>
-                    <p className="text-xs font-medium text-emerald-900/60 leading-relaxed">{t.riskDesc}</p>
+                  <div className="p-6 rounded-2xl bg-emerald-50/40 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-500/10">
+                    <h4 className="font-black text-xs uppercase tracking-widest mb-3 text-emerald-800 dark:text-emerald-300">{t.riskTitle}</h4>
+                    <p className="text-xs font-medium text-emerald-900/60 dark:text-emerald-400/50 leading-relaxed">{t.riskDesc}</p>
                   </div>
                 </div>
 
-                <h3 className="text-lg font-black font-display mb-6 uppercase tracking-wider text-[#04211C]">{t.rules}</h3>
+                <h3 className="text-lg font-black font-display mb-6 uppercase tracking-wider text-[#04211C] dark:text-emerald-50">{t.rules}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[t.rule1, t.rule2, t.rule3, t.rule4].map((rule, idx) => (
-                    <div key={idx} className="flex gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-medium text-emerald-900/60 leading-relaxed">
-                      <span className="flex-shrink-0 h-6 w-6 rounded-lg bg-emerald-900 text-white flex items-center justify-center text-[10px] font-black">{idx + 1}</span>
+                    <div key={idx} className="flex gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-emerald-900/10 border border-gray-100 dark:border-emerald-500/10 text-sm font-medium text-emerald-900/60 dark:text-emerald-400/60 leading-relaxed">
+                      <span className="flex-shrink-0 h-6 w-6 rounded-lg bg-emerald-900 dark:bg-emerald-500 text-white dark:text-[#04211C] flex items-center justify-center text-[10px] font-black">{idx + 1}</span>
                       {rule}
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="p-8 rounded-3xl bg-red-50 border border-red-100 shadow-sm">
-                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-red-600 mb-4 flex items-center gap-2">
+              <div className="p-8 rounded-3xl bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-500/20 shadow-sm">
+                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-red-600 dark:text-red-400 mb-4 flex items-center gap-2">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                   {t.disclaimer}
                 </h3>
-                <p className="text-xs font-medium text-red-900/70 leading-relaxed max-w-3xl italic">
+                <p className="text-xs font-medium text-red-900/70 dark:text-red-400/60 leading-relaxed max-w-3xl italic">
                   {t.disclaimerText}
                 </p>
               </div>
@@ -651,17 +670,17 @@ function App() {
       {showResultsModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
           <div className="absolute inset-0" onClick={() => setShowResultsModal(false)} />
-          <div className="relative z-10 w-full max-w-lg bg-white rounded-[2.5rem] p-10 text-center shadow-2xl animate-in zoom-in-95 duration-300">
-             <button onClick={() => setShowResultsModal(false)} className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 transition-all z-20"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-             <h2 className="text-3xl font-black font-display text-[#04211C] mb-8">{t.latestResult}</h2>
+          <div className="relative z-10 w-full max-w-lg bg-white dark:bg-[#04211C] rounded-[2.5rem] p-10 text-center shadow-2xl animate-in zoom-in-95 duration-300">
+             <button onClick={() => setShowResultsModal(false)} className="absolute top-6 right-6 p-2 text-gray-400 dark:text-emerald-500/40 hover:text-gray-600 dark:hover:text-emerald-50 transition-all z-20"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+             <h2 className="text-3xl font-black font-display text-[#04211C] dark:text-emerald-50 mb-8">{t.latestResult}</h2>
              <div className="flex justify-center gap-4 mb-12 h-24">
                 {liveLotteryNumbers.map((n, i) => (
-                  <div key={i} className={`h-16 w-16 md:h-20 md:w-20 rounded-full border-4 flex items-center justify-center transition-all duration-700 transform ${n !== null ? 'scale-110 rotate-12 border-emerald-500 bg-emerald-50 shadow-lg' : 'border-dashed border-emerald-100 bg-emerald-50/30'}`}>
-                    <span className="font-black text-2xl text-emerald-900">{n !== null ? n : '?'}</span>
+                  <div key={i} className={`h-16 w-16 md:h-20 md:w-20 rounded-full border-4 flex items-center justify-center transition-all duration-700 transform ${n !== null ? 'scale-110 rotate-12 border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 shadow-lg' : 'border-dashed border-emerald-100 dark:border-emerald-500/20 bg-emerald-50/30 dark:bg-emerald-500/5'}`}>
+                    <span className="font-black text-2xl text-emerald-900 dark:text-emerald-50">{n !== null ? n : '?'}</span>
                   </div>
                 ))}
              </div>
-             <p className="text-[10px] font-bold text-emerald-800/40 uppercase tracking-widest">{lotteryPhase < 5 ? t.verifyingOnchain : t.revealSuccess}</p>
+             <p className="text-[10px] font-bold text-emerald-800/40 dark:text-emerald-500/30 uppercase tracking-widest">{lotteryPhase < 5 ? t.verifyingOnchain : t.revealSuccess}</p>
           </div>
         </div>
       )}
@@ -669,13 +688,13 @@ function App() {
       {showProfileModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
           <div className="absolute inset-0" onClick={() => setShowProfileModal(false)} />
-          <div className="relative z-10 w-full max-w-5xl bg-[#F9FAFB] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[95vh] animate-in zoom-in-95 duration-300">
-            <div className="p-12 border-b bg-white flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="relative z-10 w-full max-w-5xl bg-[#F9FAFB] dark:bg-[#021411] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[95vh] animate-in zoom-in-95 duration-300 transition-colors">
+            <div className="p-12 border-b dark:border-emerald-500/10 bg-white dark:bg-[#04211C] flex flex-col md:flex-row items-center justify-between gap-8 transition-colors">
               <div className="flex flex-col md:flex-row items-center gap-8 w-full">
                 <div className="relative">
-                  <img src={profile.avatarUrl} alt="Profile" className="h-32 w-32 rounded-full border-4 border-emerald-100 shadow-lg object-cover" />
+                  <img src={profile.avatarUrl} alt="Profile" className="h-32 w-32 rounded-full border-4 border-emerald-100 dark:border-emerald-500/20 shadow-lg object-cover" />
                   {isEditingProfile && (
-                    <button onClick={() => fileInputRef.current?.click()} className="absolute bottom-0 right-0 bg-emerald-600 text-white p-2 rounded-full shadow-lg border-2 border-white hover:bg-emerald-700">
+                    <button onClick={() => fileInputRef.current?.click()} className="absolute bottom-0 right-0 bg-emerald-600 dark:bg-emerald-500 text-white dark:text-[#04211C] p-2 rounded-full shadow-lg border-2 border-white dark:border-[#04211C] hover:bg-emerald-700 dark:hover:bg-emerald-400">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                       <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload} />
                     </button>
@@ -684,18 +703,18 @@ function App() {
                 <div className="flex-1 text-center md:text-left">
                   {isEditingProfile ? (
                     <div className="space-y-4">
-                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-emerald-800/40 tracking-widest block">{t.username}</label><input className="px-4 py-2 border rounded-xl font-bold w-full" value={profile.username} onChange={e => setProfile({...profile, username: e.target.value})} /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-emerald-800/40 tracking-widest block">Choose Avatar</label>
+                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-emerald-800/40 dark:text-emerald-500/40 tracking-widest block">{t.username}</label><input className="px-4 py-2 border dark:border-emerald-500/20 dark:bg-emerald-500/5 rounded-xl font-bold w-full dark:text-emerald-50" value={profile.username} onChange={e => setProfile({...profile, username: e.target.value})} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-emerald-800/40 dark:text-emerald-500/40 tracking-widest block">Choose Avatar</label>
                         <div className="flex gap-2 flex-wrap">
                           {PRELOADED_AVATARS.map((url, i) => (
-                            <button key={i} onClick={() => setProfile({...profile, avatarUrl: url})} className={`h-12 w-12 rounded-full overflow-hidden border-2 transition-all ${profile.avatarUrl === url ? 'border-emerald-600 scale-110 shadow-md' : 'border-emerald-100 opacity-50'}`}><img src={url} className="w-full h-full object-cover" /></button>
+                            <button key={i} onClick={() => setProfile({...profile, avatarUrl: url})} className={`h-12 w-12 rounded-full overflow-hidden border-2 transition-all ${profile.avatarUrl === url ? 'border-emerald-600 dark:border-emerald-400 scale-110 shadow-md' : 'border-emerald-100 dark:border-emerald-500/10 opacity-50'}`}><img src={url} className="w-full h-full object-cover" /></button>
                           ))}
                         </div>
                       </div>
-                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-emerald-800/40 tracking-widest block">{t.bio}</label><textarea className="px-4 py-2 border rounded-xl text-sm w-full" value={profile.bio} onChange={e => setProfile({...profile, bio: e.target.value})} /></div>
+                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-emerald-800/40 dark:text-emerald-500/40 tracking-widest block">{t.bio}</label><textarea className="px-4 py-2 border dark:border-emerald-500/20 dark:bg-emerald-500/5 rounded-xl text-sm w-full dark:text-emerald-50" value={profile.bio} onChange={e => setProfile({...profile, bio: e.target.value})} /></div>
                     </div>
                   ) : (
-                    <><h2 className="text-3xl font-black font-display text-[#04211C]">{profile.username}</h2><p className="text-sm font-bold text-[#0D6B58]/40 uppercase tracking-widest mt-1 mb-4 font-mono">{account}</p><p className="text-sm text-gray-500">{profile.bio}</p></>
+                    <><h2 className="text-3xl font-black font-display text-[#04211C] dark:text-emerald-50">{profile.username}</h2><p className="text-sm font-bold text-[#0D6B58]/40 dark:text-emerald-400/40 uppercase tracking-widest mt-1 mb-4 font-mono">{account}</p><p className="text-sm text-gray-500 dark:text-emerald-400/60">{profile.bio}</p></>
                   )}
                 </div>
               </div>
@@ -704,50 +723,50 @@ function App() {
                 <PrimaryButton onClick={() => { setAccount(null); setShowProfileModal(false); }} variant="warning">{t.logout}</PrimaryButton>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-12 space-y-12 bg-gray-50/50">
-              <section className="bg-white p-8 rounded-[2rem] border border-emerald-100 shadow-sm relative overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-12 space-y-12 bg-gray-50/50 dark:bg-[#021411]/50">
+              <section className="bg-white dark:bg-[#04211C] p-8 rounded-[2rem] border border-emerald-100 dark:border-emerald-500/10 shadow-sm relative overflow-hidden transition-colors">
                 <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none scale-110"><Logo size={120} /></div>
                 <div className="flex flex-col lg:flex-row gap-12 items-start relative z-10">
                   <div className="flex-1 w-full">
-                    <h3 className="text-xl font-black font-display mb-2">{t.earningsSummary}</h3>
-                    <p className="text-xs font-bold text-emerald-800/40 uppercase tracking-widest mb-8">{t.referralBonus}</p>
+                    <h3 className="text-xl font-black font-display mb-2 dark:text-emerald-50">{t.earningsSummary}</h3>
+                    <p className="text-xs font-bold text-emerald-800/40 dark:text-emerald-500/30 uppercase tracking-widest mb-8">{t.referralBonus}</p>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-                       <div className="bg-gray-50 border border-gray-100 p-6 rounded-2xl">
-                          <span className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 block mb-2">{t.totalEarnings}</span>
-                          <div className="flex items-baseline gap-2"><span className="text-3xl font-black text-[#04211C]">{referralBalance.total.toFixed(2)}</span><span className="text-xs font-bold text-emerald-600">M-USDT</span></div>
+                       <div className="bg-gray-50 dark:bg-emerald-500/5 border border-gray-100 dark:border-emerald-500/10 p-6 rounded-2xl">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 dark:text-emerald-500/30 block mb-2">{t.totalEarnings}</span>
+                          <div className="flex items-baseline gap-2"><span className="text-3xl font-black text-[#04211C] dark:text-emerald-50">{referralBalance.total.toFixed(2)}</span><span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">M-USDT</span></div>
                        </div>
-                       <div className="bg-emerald-900 p-6 rounded-2xl text-white shadow-xl flex flex-col justify-between">
+                       <div className="bg-emerald-900 dark:bg-emerald-500 p-6 rounded-2xl text-white dark:text-[#04211C] shadow-xl flex flex-col justify-between">
                           <div>
-                            <span className="text-[10px] font-black uppercase tracking-widest opacity-40 block mb-1">AVAILABLE TO CLAIM</span>
-                            <div className="flex items-baseline gap-2"><span className="text-3xl font-black">{referralBalance.available.toFixed(2)}</span><span className="text-xs font-bold opacity-30">M-USDT</span></div>
+                            <span className="text-[10px] font-black uppercase tracking-widest opacity-40 dark:opacity-60 block mb-1">AVAILABLE TO CLAIM</span>
+                            <div className="flex items-baseline gap-2"><span className="text-3xl font-black">{referralBalance.available.toFixed(2)}</span><span className="text-xs font-bold opacity-30 dark:opacity-40">M-USDT</span></div>
                           </div>
-                          <button onClick={() => { if (referralBalance.available > 0) { setReferralBalance(prev => ({ ...prev, available: 0 })); alert("Earnings successfully claimed to your wallet!"); } }} disabled={referralBalance.available <= 0} className="mt-6 w-full py-3 bg-emerald-500 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-400 disabled:opacity-30 disabled:hover:bg-emerald-500 transition-all">{t.claimAll}</button>
+                          <button onClick={() => { if (referralBalance.available > 0) { setReferralBalance(prev => ({ ...prev, available: 0 })); alert("Earnings successfully claimed to your wallet!"); } }} disabled={referralBalance.available <= 0} className="mt-6 w-full py-3 bg-emerald-500 dark:bg-[#04211C] rounded-xl font-black text-[10px] uppercase tracking-widest text-white dark:text-emerald-50 hover:bg-emerald-400 dark:hover:bg-black disabled:opacity-30 disabled:hover:bg-emerald-500 transition-all">{t.claimAll}</button>
                        </div>
                     </div>
 
                     <div className="space-y-4">
-                      <label className="text-[10px] font-black uppercase text-emerald-800/40 tracking-widest block">{t.referral}</label>
-                      <div className="flex gap-3"><div className="flex-1 bg-gray-50 border border-emerald-50 px-4 py-3 rounded-xl text-xs font-mono truncate">{account ? `${window.location.origin}${window.location.pathname}?ref=${account}` : '...'}</div><button onClick={copyRefLink} className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-emerald-700 transition-colors">{t.copyLink}</button></div>
+                      <label className="text-[10px] font-black uppercase text-emerald-800/40 dark:text-emerald-500/40 tracking-widest block">{t.referral}</label>
+                      <div className="flex gap-3"><div className="flex-1 bg-gray-50 dark:bg-emerald-500/5 border border-emerald-50 dark:border-emerald-500/10 px-4 py-3 rounded-xl text-xs font-mono dark:text-emerald-50 truncate">{account ? `${window.location.origin}${window.location.pathname}?ref=${account}` : '...'}</div><button onClick={copyRefLink} className="bg-emerald-600 dark:bg-emerald-500 text-white dark:text-[#04211C] px-6 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-emerald-700 dark:hover:bg-emerald-400 transition-colors">{t.copyLink}</button></div>
                     </div>
                   </div>
                 </div>
               </section>
               
               <section>
-                <h3 className="text-xl font-black font-display mb-8">{t.myTickets} ({tickets.length})</h3>
-                {tickets.length === 0 ? (<div className="py-20 text-center border-2 border-dashed rounded-[2rem] border-emerald-100 text-emerald-900/40 font-bold uppercase tracking-widest bg-white">NO ENTRIES FOUND</div>) : (
+                <h3 className="text-xl font-black font-display mb-8 dark:text-emerald-50">{t.myTickets} ({tickets.length})</h3>
+                {tickets.length === 0 ? (<div className="py-20 text-center border-2 border-dashed rounded-[2rem] border-emerald-100 dark:border-emerald-500/20 text-emerald-900/40 dark:text-emerald-500/20 font-bold uppercase tracking-widest bg-white dark:bg-[#04211C]">NO ENTRIES FOUND</div>) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {tickets.map(ticket => {
                       const winningNums = getWinningNumbersForSlot(ticket.targetLottery);
                       const isWinner = ticket.numbers.every((n: number, i: number) => n === winningNums[i]);
                       return (
-                        <div key={ticket.id} className={`bg-white rounded-[2.5rem] border overflow-hidden p-6 transition-all ${isWinner ? 'border-amber-400 shadow-[0_10px_30px_rgba(212,175,55,0.15)] ring-2 ring-amber-400/20' : 'border-emerald-50 shadow-sm hover:-translate-y-1'}`}>
-                          <div className="flex justify-between items-center mb-6"><span className="text-[10px] font-black opacity-30 uppercase tracking-widest">ID: {ticket.id}</span><Pill variant={isWinner ? 'gold' : 'mint'}>{isWinner ? 'WINNER' : 'VERIFIED'}</Pill></div>
-                          <div className="flex gap-2 justify-center mb-6">{ticket.numbers.map((n: number, i: number) => (<div key={i} className={`h-12 w-12 rounded-2xl flex items-center justify-center text-lg font-black ${isWinner ? 'bg-amber-50 border-2 border-amber-200 text-amber-900' : 'bg-emerald-50 border-2 border-emerald-100 text-emerald-900'}`}>{n}</div>))}</div>
-                          <div className="pt-4 border-t text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center mb-4">{new Date(ticket.targetLottery).toLocaleDateString()} AT {pad2(new Date(ticket.targetLottery).getUTCHours())}:00 UTC</div>
+                        <div key={ticket.id} className={`bg-white dark:bg-[#04211C] rounded-[2.5rem] border overflow-hidden p-6 transition-all ${isWinner ? 'border-amber-400 shadow-[0_10px_30px_rgba(212,175,55,0.15)] ring-2 ring-amber-400/20' : 'border-emerald-50 dark:border-emerald-500/10 shadow-sm hover:-translate-y-1'}`}>
+                          <div className="flex justify-between items-center mb-6"><span className="text-[10px] font-black opacity-30 dark:opacity-40 uppercase tracking-widest dark:text-emerald-400">ID: {ticket.id}</span><Pill variant={isWinner ? 'gold' : 'mint'}>{isWinner ? 'WINNER' : 'VERIFIED'}</Pill></div>
+                          <div className="flex gap-2 justify-center mb-6">{ticket.numbers.map((n: number, i: number) => (<div key={i} className={`h-12 w-12 rounded-2xl flex items-center justify-center text-lg font-black ${isWinner ? 'bg-amber-50 dark:bg-amber-500/10 border-2 border-amber-200 dark:border-amber-500/30 text-amber-900 dark:text-amber-400' : 'bg-emerald-50 dark:bg-emerald-500/5 border-2 border-emerald-100 dark:border-emerald-500/10 text-emerald-900 dark:text-emerald-50'}`}>{n}</div>))}</div>
+                          <div className="pt-4 border-t dark:border-emerald-500/10 text-[10px] font-bold text-gray-400 dark:text-emerald-500/30 uppercase tracking-widest text-center mb-4">{new Date(ticket.targetLottery).toLocaleDateString()} AT {pad2(new Date(ticket.targetLottery).getUTCHours())}:00 UTC</div>
                           {isWinner && !ticket.claimed && (<PrimaryButton onClick={() => handleClaim(ticket.id)} variant="gold">{t.claimPrize}</PrimaryButton>)}
-                          {ticket.claimed && (<div className="w-full py-3 bg-emerald-100 text-emerald-800 rounded-2xl text-center text-xs font-black uppercase tracking-widest border border-emerald-200">{t.claimed}</div>)}
+                          {ticket.claimed && (<div className="w-full py-3 bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 rounded-2xl text-center text-xs font-black uppercase tracking-widest border border-emerald-200 dark:border-emerald-500/20">{t.claimed}</div>)}
                         </div>
                       );
                     })}
@@ -759,19 +778,19 @@ function App() {
         </div>
       )}
       
-      <footer className="max-w-7xl mx-auto px-8 py-20 border-t border-emerald-100 text-center">
-        <p className="text-[10px] font-black text-emerald-900/20 uppercase tracking-[0.3em]">{t.footer}</p>
+      <footer className="max-w-7xl mx-auto px-8 py-20 border-t border-emerald-100 dark:border-emerald-500/10 text-center transition-colors">
+        <p className="text-[10px] font-black text-emerald-900/20 dark:text-emerald-500/10 uppercase tracking-[0.3em]">{t.footer}</p>
       </footer>
     </div>
   );
 }
 
-function Step({ num, title, desc }: { num: number, title: string, desc: string }) {
+function Step({ num, title, desc, isDark }: { num: number, title: string, desc: string, isDark: boolean }) {
   return (
     <div className="flex flex-col items-center text-center">
-      <div className="h-12 w-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-black text-xl mb-4">{num}</div>
-      <h4 className="font-bold mb-2 text-sm" style={{ color: COLORS.midnight }}>{title}</h4>
-      <p className="text-[11px] text-emerald-900/60 leading-relaxed font-medium">{desc}</p>
+      <div className="h-12 w-12 rounded-2xl bg-emerald-100 dark:bg-emerald-500 text-emerald-800 dark:text-[#04211C] flex items-center justify-center font-black text-xl mb-4">{num}</div>
+      <h4 className="font-bold mb-2 text-sm dark:text-emerald-50" style={{ color: !isDark ? COLORS.midnight : undefined }}>{title}</h4>
+      <p className="text-[11px] text-emerald-900/60 dark:text-emerald-400/40 leading-relaxed font-medium">{desc}</p>
     </div>
   );
 }
