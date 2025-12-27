@@ -1,5 +1,4 @@
 
-
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import ReactDOM from "react-dom/client";
 import { ethers } from "ethers";
@@ -108,7 +107,7 @@ const TimeDisplay = ({ value, label }: { value: string, label: string }) => (
 function Step({ num, title, desc }: { num: number; title: string; desc: string }) {
   return (
     <div className="flex flex-col items-center text-center">
-      <div className="h-12 w-12 rounded-2xl bg-emerald-100 dark:bg-emerald-500 text-emerald-800 dark:text-[#04211C] flex items-center justify-center font-black text-xl mb-4">{num}</div>
+      <div className="h-12 w-12 rounded-2xl bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 flex items-center justify-center font-black text-xl mb-4">{num}</div>
       <h4 className="font-bold mb-2 text-sm text-[#04211C] dark:text-white">{title}</h4>
       <p className="text-[11px] text-emerald-900/60 dark:text-white/40 leading-relaxed font-medium">{desc}</p>
     </div>
@@ -128,7 +127,6 @@ function App() {
   const [ticketPrice, setTicketPrice] = useState(0.00);
   const [referralBalance, setReferralBalance] = useState(0.00);
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  // FIX: Using a string key for the record allows Object.entries to correctly infer the value type as Draw, preventing 'unknown' type errors.
   const [previousDraws, setPreviousDraws] = useState<Record<string, Draw>>({});
   const [userReferrer, setUserReferrer] = useState<string | null>(null);
 
@@ -147,10 +145,8 @@ function App() {
 
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
-  const [showProfileModal, setShowProfileModal] = useState(false);
   const [showVerifyModal, setShowVerifyModal] = useState<{timestamp: number, numbers: number[]} | null>(null);
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   const [profile, setProfile] = useState({ username: "LuckyPlayer", bio: "Onchain Enthusiast", avatarUrl: PRELOADED_AVATARS[0] });
 
@@ -161,21 +157,21 @@ function App() {
   const translations = {
     en: {
       title: "OnChain Jackpot", connect: "Connect", heroTitle: "Onchain Daily Prediction",
-      heroSubtitle: "Verifiable jackpot settles twice daily at 00:00 & 12:00 UTC. Every entry is a unique NFT minted on MerlinChain.",
-      mintTitle: "Mint New NFT Entry", selectSchedule: "SELECT PREDICTION SCHEDULE",
-      select4: "SELECT 4 NUMBERS (1-9)", randomize: "Randomize", purchase: "Mint NFT Ticket",
+      heroSubtitle: "Verifiable jackpot settles twice daily at 00:00 & 12:00 UTC. Every entry is a unique ticket minted on MerlinChain.",
+      mintTitle: "Mint New Entry", selectSchedule: "SELECT PREDICTION SCHEDULE",
+      select4: "SELECT 4 NUMBERS (1-9)", randomize: "Randomize", purchase: "Mint Ticket",
       viewResults: "VIEW RESULTS", howItWorks: "HOW IT WORKS", countdownTitle: "Next Prediction Countdown", countdownSub: "Reveal: 00:00 & 12:00 UTC",
-      myTickets: "My NFT Entries", profile: "Profile", referral: "Referral & Rewards", logout: "Logout",
+      myTickets: "My Entries", profile: "Profile", referral: "Referral & Rewards", logout: "Logout",
       save: "Save Changes", copyLink: "Copy Link", jackpotLabel: "NEXT JACKPOT", network: "MERLIN TESTNET",
       switchToTestnet: "Switch to Merlin Testnet", latestResult: "Latest Result", settledMsg: "PREDICTION SUCCESSFULLY SETTLED",
       verifyingOnchain: "Verifying Onchain Entropy...", revealSuccess: "Settlement Complete", days: "Days", hours: "Hours", minutes: "Minutes", seconds: "Seconds",
       totalPrice: "TOTAL PRICE", gasFeesNote: "+ Gas Fees Apply", targetLottery: "TARGET DRAW",
-      referralBonus: "EARN ONCHAIN REWARDS FOR EVERY NFT MINTED THROUGH YOUR LINK",
+      referralBonus: "EARN ONCHAIN REWARDS FOR EVERY TICKET MINTED THROUGH YOUR LINK",
       footer: "OnChain Prediction • Powered by MerlinChain • Verifiable Assets",
       step1Title: "Connect & Switch", step1Desc: "Connect your wallet and switch to MerlinChain Testnet.",
-      step2Title: "Pick Your Numbers", step2Desc: "Select 4 numbers between 1-9. These will be encoded into your NFT metadata.",
-      step3Title: "Mint Your Entry", step3Desc: "Confirm the transaction to mint your unique NFT ticket. Price is set by the contract owner.",
-      step4Title: "Claim the Jackpot", step4Desc: "If your NFT numbers match the daily prediction exactly, you can claim your share of the jackpot prize pool!",
+      step2Title: "Pick Your Numbers", step2Desc: "Select 4 numbers between 1-9. These will be encoded into your ticket's on-chain data.",
+      step3Title: "Mint Your Entry", step3Desc: "Confirm the transaction to mint your unique ticket. Price is set by the contract owner.",
+      step4Title: "Claim the Jackpot", step4Desc: "If your ticket's numbers match the daily prediction exactly, you can claim your share of the jackpot prize pool!",
       rules: "Prediction Rules", rule1: "A prediction event occurs every 12 hours (00:00 & 12:00 UTC).",
       rule2: "Predictions use deterministic on-chain entropy to ensure fairness.",
       rule3: "Jackpot is shared among all winners of that specific prediction window.",
@@ -190,24 +186,26 @@ function App() {
       noSettledPredictions: "No settled predictions yet. Results will appear here after the first draw concludes.",
       saveReferrer: "Save Referrer", referrerFound: "Referrer found! Save them to earn rewards on future mints.",
       totalEarned: "Total Earned",
+      noTicketsFound: "No tickets found.",
+      mintToSee: "Mint an entry to see it here.",
     },
     zh: {
       title: "链上大奖", connect: "连接", heroTitle: "链上每日预测",
-      heroSubtitle: "可验证奖池每日 00:00 和 12:00 UTC 定时结算。每一张投注都是在 MerlinChain 上铸造的唯一 NFT。",
-      mintTitle: "铸造新 NFT 投注", selectSchedule: "选择开奖时间",
-      select4: "选择 4 个数字 (1-9)", randomize: "随机生成", purchase: "铸造 NFT 彩票",
+      heroSubtitle: "可验证奖池每日 00:00 和 12:00 UTC 定时结算。每一次投注都会在 MerlinChain 上铸造一张独一无二的票证。",
+      mintTitle: "铸造新票证", selectSchedule: "选择开奖时间",
+      select4: "选择 4 个数字 (1-9)", randomize: "随机生成", purchase: "铸造票证",
       viewResults: "查看结果", howItWorks: "运作方式", countdownTitle: "下次预测倒计时", countdownSub: "开奖时间: 00:00 & 12:00 UTC",
-      myTickets: "我的投注", profile: "个人中心", referral: "推荐奖励", logout: "断开连接",
+      myTickets: "我的票证", profile: "个人中心", referral: "推荐奖励", logout: "断开连接",
       save: "保存修改", copyLink: "复制链接", jackpotLabel: "下期奖池", network: "MERLIN 测试网",
       switchToTestnet: "切换至 Merlin 测试网", latestResult: "最新开奖", settledMsg: "预测已成功结算",
       verifyingOnchain: "验证链上数据...", revealSuccess: "结算完成", days: "天", hours: "小时", minutes: "分钟", seconds: "秒",
       totalPrice: "总价", gasFeesNote: "+ 需支付网络 Gas 费", targetLottery: "目标期数",
-      referralBonus: "通过您的链接铸造的每个 NFT 均可赚取链上奖励",
+      referralBonus: "通过您的链接每铸造一张票证，均可赚取链上奖励",
       footer: "链上预测 • 由 MerlinChain 提供支持 • 可验证资产",
       step1Title: "连接并切换", step1Desc: "连接您的钱包并切换到 MerlinChain 测试网。",
-      step2Title: "选择号码", step2Desc: "在 1-9 之间选择 4 个数字。这些将编码到您的 NFT 元数据中。",
-      step3Title: "铸造投注", step3Desc: "确认交易以铸造您唯一的 NFT 彩票。价格由合约所有者设定。",
-      step4Title: "领取大奖", step4Desc: "如果您的 NFT 号码与每日预测完全匹配，即可领取奖池奖金份额！",
+      step2Title: "选择号码", step2Desc: "在 1-9 之间选择 4 个数字。这些将编码到您票证的链上数据中。",
+      step3Title: "铸造投注", step3Desc: "确认交易以铸造您唯一的票证。价格由合约所有者设定。",
+      step4Title: "领取大奖", step4Desc: "如果您的票证号码与每日预测完全匹配，即可领取奖池奖金份额！",
       rules: "预测规则", rule1: "每 12 小时进行一次预测 (00:00 & 12:00 UTC)。",
       rule2: "预测使用确定的链上随机熵，确保公平性。",
       rule3: "奖池由该特定预测时段的所有中奖者平分。",
@@ -222,6 +220,8 @@ function App() {
       noSettledPredictions: "尚无已结算的预测。首次开奖结束后，结果将显示在此处。",
       saveReferrer: "保存推荐人", referrerFound: "发现推荐人！保存后，您未来的铸造将产生奖励。",
       totalEarned: "总收益",
+      noTicketsFound: "未找到任何票证。",
+      mintToSee: "铸造一张票证即可在此处查看。",
     }
   };
 
@@ -334,7 +334,6 @@ function App() {
         const settledFilter = contract.filters.DrawSettled();
         const settledEvents = await contract.queryFilter(settledFilter, 0, 'latest');
         
-        // FIX: Using a string key for the record allows Object.entries to correctly infer the value type as Draw.
         const draws: Record<string, Draw> = {};
         for (const event of settledEvents) {
             const args = event.args as any;
@@ -447,7 +446,6 @@ function App() {
         const contractWithSigner = contract.connect(signer) as ethers.Contract;
         const price = await contract.ticketPrice();
         
-        // Ensure numbers are in a fixed-size array for the contract
         const nums: [number, number, number, number] = [
             selectedNumbers[0],
             selectedNumbers[1],
@@ -540,7 +538,11 @@ function App() {
     setPredictionPhase(5);
   }, [previousDraws]);
 
-  useEffect(() => { if (showResultsModal) runLivePredictionSequence(); }, [showResultsModal, runLivePredictionSequence]);
+  useEffect(() => { 
+    if (showResultsModal && Object.keys(previousDraws).length > 0) {
+      runLivePredictionSequence();
+    }
+  }, [showResultsModal, runLivePredictionSequence, previousDraws]);
 
   const handleRandomize = () => {
     const nums: number[] = [];
@@ -619,7 +621,18 @@ function App() {
     <div className="min-h-screen pb-12 transition-colors duration-300">
       <header className="sticky top-0 z-50 bg-white/90 dark:bg-[#04211C]/90 backdrop-blur-lg border-b border-gray-100 dark:border-emerald-500/10 px-4 md:px-8 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.location.reload()}>
-            <div className="h-10 w-10"><svg width="42" height="42" viewBox="0 0 120 120" fill="none"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#f7e1a0" /><stop offset="100%" stopColor="#8b6508" /></linearGradient></defs><g fill="#0b533a"><polygon points="60,10.72 85.25,25.25 85.25,54.28 60,68.81 34.75,54.28 34.75,25.25 Z" /><polygon points="60,43.22 85.25,57.75 85.25,86.78 60,101.31 34.75,86.78 34.75,57.75 Z" /></g><g fill="url(#g)"><polygon points="60,16.97 81.25,29.13 81.25,52.44 60,64.6 38.75,52.44 38.75,29.13 Z" /><polygon points="60,49.47 81.25,61.63 81.25,84.94 60,97.1 38.75,84.94 38.75,61.63 Z" /></g></svg></div>
+            <div className="h-10 w-10">
+              <svg width="42" height="42" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M42.26 9.71c-3.1 1.8-3.1 6.2 0 8l15.48 9c3.1 1.8 7.02-0.5 7.02-4V13.7c0-3.6-3.92-5.8-7.02-4L42.26 9.7zM29.5 25.4a4 4 0 0 0-4 4v29.3c0 3.6 3.92 5.8 7.01 4l15.5-9a4 4 0 0 0 0-8L32.5 41.7a4 4 0 0 1 0-8l15.5-9a4 4 0 0 0 0-8L29.5 25.4z" fill="url(#paint0_linear_1)"/>
+                <path d="M57.74 90.29c3.1-1.8 3.1-6.2 0-8L42.26 73.3c-3.1-1.8-7.02.5-7.02 4v22.6c0 3.6 3.92 5.8 7.02 4l15.48-9zM70.5 74.6a4 4 0 0 1 4-4h.01v-29.3c0-3.6-3.92-5.8-7.02-4l-15.5 9a4 4 0 0 1 0 8l15.5 9a4 4 0 0 0 0 8l-15.5 9a4 4 0 0 1 0 8l15.5-9z" fill="url(#paint1_linear_1)"/>
+                <circle cx="50" cy="50" r="48" stroke="url(#paint2_linear_1)" stroke-width="4"/>
+                <defs>
+                  <linearGradient id="paint0_linear_1" x1="25" y1="36" x2="65" y2="21" gradientUnits="userSpaceOnUse"><stop stop-color="#38F8D4"/><stop offset="1" stop-color="#08E1A6"/></linearGradient>
+                  <linearGradient id="paint1_linear_1" x1="75" y1="64" x2="35" y2="79" gradientUnits="userSpaceOnUse"><stop stop-color="#38F8D4"/><stop offset="1" stop-color="#08E1A6"/></linearGradient>
+                  <linearGradient id="paint2_linear_1" x1="50" y1="0" x2="50" y2="100" gradientUnits="userSpaceOnUse"><stop stop-color="#08E1A6" stop-opacity="0"/><stop offset="0.2" stop-color="#08E1A6" stop-opacity="0.5"/><stop offset="0.5" stop-color="#38F8D4"/><stop offset="0.8" stop-color="#08E1A6" stop-opacity="0.5"/><stop offset="1" stop-color="#08E1A6" stop-opacity="0"/></linearGradient>
+                </defs>
+              </svg>
+            </div>
             <div className="hidden sm:block">
               <h1 className="text-lg md:text-xl font-bold font-display text-[#04211C] dark:text-white">{t.title}</h1>
               <p className="text-[9px] font-bold text-[#0D6B58] dark:text-emerald-400 uppercase tracking-widest">{t.network}</p>
@@ -630,6 +643,7 @@ function App() {
             <button onClick={switchNetwork} className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all hover:bg-indigo-100 dark:hover:bg-indigo-500/20">{t.switchToTestnet}</button>
           )}
           <button onClick={() => setShowResultsModal(true)} className="px-3 py-1.5 border border-[#7FE6C3] dark:border-emerald-500/30 rounded-xl text-[9px] md:text-[11px] font-black uppercase tracking-wider text-[#04211C] dark:text-white transition-all hover:bg-emerald-50 dark:hover:bg-emerald-500/10">{t.viewResults}</button>
+          <button onClick={() => setShowGuideModal(true)} className="px-3 py-1.5 border border-[#7FE6C3] dark:border-emerald-500/30 rounded-xl text-[9px] md:text-[11px] font-black uppercase tracking-wider text-[#04211C] dark:text-white transition-all hover:bg-emerald-50 dark:hover:bg-emerald-500/10">{t.howItWorks}</button>
           <button onClick={() => setLang(lang === 'en' ? 'zh' : 'en')} className="px-3 py-1.5 border border-[#7FE6C3] dark:border-emerald-500/30 rounded-xl text-[9px] md:text-[11px] font-black uppercase tracking-wider text-[#04211C] dark:text-white transition-all hover:bg-emerald-50 dark:hover:bg-emerald-500/10">{lang === 'en' ? '中文' : 'EN'}</button>
           <button onClick={() => setIsDark(!isDark)} className="p-2 rounded-xl border border-[#7FE6C3] dark:border-emerald-500/30">{isDark ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-emerald-400"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-midnight"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>}</button>
           {account ? <button onClick={() => setShowProfileModal(true)} className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-emerald-100 dark:border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/5 text-emerald-800 dark:text-emerald-100 font-bold text-xs shadow-sm transition-all hover:bg-emerald-100 dark:hover:bg-emerald-500/10"><img src={profile.avatarUrl} alt="Avatar" className="h-6 w-6 rounded-full object-cover border border-emerald-200" /><span className="hidden lg:inline max-w-[80px] truncate">{profile.username || "Player"}</span></button> : <button onClick={connectWallet} disabled={isConnecting} className="bg-[#04211C] dark:bg-emerald-500 text-white dark:text-[#04211C] px-6 py-2 rounded-xl text-xs font-bold shadow-md hover:scale-[1.05] transition-all disabled:opacity-50">{isConnecting ? "..." : t.connect}</button>}
@@ -659,7 +673,7 @@ function App() {
              {account ? (
                 <div className="space-y-4">
                     {tickets.length === 0 ? (
-                         <div className="text-center py-12 px-6 rounded-2xl bg-gray-50 dark:bg-emerald-500/5 border border-gray-100 dark:border-emerald-500/10"><h3 className="mt-4 text-sm font-semibold text-gray-800 dark:text-white">No NFT tickets found.</h3><p className="text-xs text-gray-400 mt-2">Mint an entry to see it here.</p></div>
+                         <div className="text-center py-12 px-6 rounded-2xl bg-gray-50 dark:bg-emerald-500/5 border border-gray-100 dark:border-emerald-500/10"><h3 className="mt-4 text-sm font-semibold text-gray-800 dark:text-white">{t.noTicketsFound}</h3><p className="text-xs text-gray-400 mt-2">{t.mintToSee}</p></div>
                     ) : (
                         tickets.map(ticket => <TicketCard key={ticket.id} ticket={ticket} />)
                     )}
@@ -669,7 +683,7 @@ function App() {
                   {Object.keys(previousDraws).length === 0 ? (
                     <div className="text-center py-12 px-6 rounded-2xl bg-gray-50 dark:bg-emerald-500/5 border border-gray-100 dark:border-emerald-500/10"><h3 className="mt-4 text-sm font-semibold text-gray-800 dark:text-white">{t.noSettledPredictions}</h3></div>
                   ) : (
-                    Object.entries(previousDraws).sort((a, b) => Number(b[0]) - Number(a[0])).map(([drawTime, drawData]) => (
+                    Object.entries(previousDraws).sort((a, b) => Number(b[0]) - Number(a[0])).map(([drawTime, drawData]: [string, Draw]) => (
                         <div key={drawTime} className="bg-gray-50 dark:bg-emerald-500/5 p-4 rounded-2xl border dark:border-emerald-500/10 flex flex-col sm:flex-row items-center justify-between gap-4">
                           <div><p className="font-bold text-sm dark:text-white">{formatDate(drawTime)}</p><p className="text-[10px] uppercase tracking-widest font-bold text-gray-400 dark:text-emerald-500/40">{formatTime(drawTime)}</p></div>
                           <div className="flex gap-2">{drawData.winningNumbers.map((n, i) => <div key={i} className="h-10 w-10 rounded-full border-2 border-emerald-200 bg-white dark:bg-emerald-500/10 dark:border-emerald-500/20 text-emerald-800 dark:text-white flex items-center justify-center font-black text-sm shadow-sm">{n}</div>)}</div>
@@ -696,6 +710,28 @@ function App() {
             </div>
           </div>
         </div>
+        
+        <section className="mt-12 bg-white dark:bg-[#04211C] rounded-[2rem] border border-gray-100 dark:border-emerald-500/10 p-8 md:p-12 shadow-xl">
+          <div className="grid md:grid-cols-2 gap-8 lg:gap-16">
+            <div>
+              <h3 className="text-xl font-bold font-display text-[#04211C] dark:text-white mb-6">{t.rules}</h3>
+              <ul className="space-y-4">
+                {[t.rule1, t.rule2, t.rule3, t.rule4].map((rule, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <div className="p-1 bg-emerald-100 dark:bg-emerald-500/10 rounded-full mt-1">
+                      <svg className="w-4 h-4 text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                    </div>
+                    <span className="text-sm text-emerald-900/70 dark:text-white/60 font-medium">{rule}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-xl font-bold font-display text-[#04211C] dark:text-white mb-6">{t.disclaimer}</h3>
+              <p className="text-sm text-emerald-900/60 dark:text-white/50 font-medium leading-relaxed border-l-4 border-emerald-200 dark:border-emerald-500/20 pl-6">{t.disclaimerText}</p>
+            </div>
+          </div>
+        </section>
 
         {/* --- All Modals --- */}
         {showResultsModal && (
@@ -703,17 +739,63 @@ function App() {
             <div className="relative z-10 w-full max-w-lg bg-white dark:bg-[#04211C] rounded-[2rem] p-10 text-center shadow-2xl animate-in zoom-in-95 duration-300">
               <button onClick={() => setShowResultsModal(false)} className="absolute top-6 right-6 p-2 dark:text-white hover:scale-110 transition-all"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
               <h2 className="text-3xl font-black font-display text-[#04211C] dark:text-white mb-8">{t.latestResult}</h2>
-              <div className="flex justify-center gap-4 mb-12 h-24">
-                  {livePredictionNumbers.map((n, i) => (<div key={i} className={`h-20 w-20 rounded-full border-4 flex items-center justify-center transition-all duration-700 ${n !== null ? 'scale-110 border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 shadow-lg' : 'border-dashed border-emerald-100 dark:border-emerald-500/20'}`}><span className="font-black text-2xl dark:text-white">{n !== null ? n : '?'}</span></div>))}
+              {Object.keys(previousDraws).length > 0 ? (
+                <>
+                  <div className="flex justify-center gap-4 mb-12 h-24">
+                      {livePredictionNumbers.map((n, i) => (<div key={i} className={`h-20 w-20 rounded-full border-4 flex items-center justify-center transition-all duration-700 ${n !== null ? 'scale-110 border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 shadow-lg' : 'border-dashed border-emerald-100 dark:border-emerald-500/20'}`}><span className="font-black text-2xl dark:text-white">{n !== null ? n : '?'}</span></div>))}
+                  </div>
+                  <p className="text-[10px] font-black text-emerald-800/40 dark:text-white/30 uppercase tracking-widest">{predictionPhase < 4 ? t.verifyingOnchain : t.revealSuccess}</p>
+                </>
+              ) : (
+                <div className="py-8">
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t.noSettledPredictions}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {showGuideModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm" onClick={() => setShowGuideModal(false)}>
+            <div className="relative z-10 w-full max-w-3xl bg-white dark:bg-[#04211C] rounded-[2rem] p-10 shadow-2xl animate-in zoom-in-95 duration-300 overflow-y-auto max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setShowGuideModal(false)} className="absolute top-6 right-6 p-2 dark:text-white hover:scale-110 transition-all"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+              <h2 className="text-3xl font-black font-display text-[#04211C] dark:text-white mb-10 text-center">{t.howItWorks}</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <Step num={1} title={t.step1Title} desc={t.step1Desc} />
+                <Step num={2} title={t.step2Title} desc={t.step2Desc} />
+                <Step num={3} title={t.step3Title} desc={t.step3Desc} />
+                <Step num={4} title={t.step4Title} desc={t.step4Desc} />
               </div>
-              <p className="text-[10px] font-black text-emerald-800/40 dark:text-white/30 uppercase tracking-widest">{predictionPhase < 4 ? t.verifyingOnchain : t.revealSuccess}</p>
+
+              <hr className="my-10 border-gray-200 dark:border-emerald-500/10" />
+
+              <div className="grid md:grid-cols-2 gap-8 lg:gap-12 text-left">
+                <div>
+                  <h3 className="text-xl font-bold font-display text-[#04211C] dark:text-white mb-6">{t.rules}</h3>
+                  <ul className="space-y-4">
+                    {[t.rule1, t.rule2, t.rule3, t.rule4].map((rule, i) => (
+                      <li key={i} className="flex items-start gap-3">
+                        <div className="p-1 bg-emerald-100 dark:bg-emerald-500/10 rounded-full mt-1 shrink-0">
+                          <svg className="w-4 h-4 text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                        </div>
+                        <span className="text-sm text-emerald-900/70 dark:text-white/60 font-medium">{rule}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold font-display text-[#04211C] dark:text-white mb-6">{t.disclaimer}</h3>
+                  <p className="text-sm text-emerald-900/60 dark:text-white/50 font-medium leading-relaxed border-l-4 border-emerald-200 dark:border-emerald-500/20 pl-6">{t.disclaimerText}</p>
+                </div>
+              </div>
             </div>
           </div>
         )}
         
       </main>
       
-      <footer className="max-w-7xl mx-auto px-8 py-20 border-t border-emerald-100 dark:border-emerald-500/10 text-center">
+      <footer className="max-w-7xl mx-auto px-8 py-20 mt-12 border-t border-emerald-100 dark:border-emerald-500/10 text-center">
         <p className="text-[10px] font-black text-emerald-900/20 dark:text-white/10 uppercase tracking-[0.3em]">{t.footer}</p>
       </footer>
     </div>

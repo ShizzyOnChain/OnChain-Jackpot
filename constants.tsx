@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 
 export const COLORS = {
@@ -13,14 +12,6 @@ export const COLORS = {
   shadow: "0 18px 50px rgba(6,58,48,0.10)",
 };
 
-export const PREDICTION_CONFIG = {
-  numberCount: 4,
-  maxNumber: 9,
-  ticketPrice: 1.00,
-  currency: "M-USDT",
-  network: "MerlinChain"
-};
-
 export const MERLIN_NETWORK = {
   chainId: '0x6b4f', // Merlin Testnet Chain ID is 686868
   chainName: 'Merlin Testnet',
@@ -31,12 +22,6 @@ export const MERLIN_NETWORK = {
   },
   rpcUrls: ['https://testnet-rpc.merlinchain.io'],
   blockExplorerUrls: ['https://testnet-scan.merlinchain.io'],
-};
-
-// FIX: Added missing ICONS export to be consumed by App.tsx
-export const ICONS = {
-  Wallet: () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 10.5V6a2 2 0 00-2-2H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2v-4.5"/><path d="M22 12h-6a2 2 0 00-2 2v0a2 2 0 002 2h6v-4z"/></svg>),
-  Sparkles: () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10 3L8 8l-5 2 5 2 2 5 2-5 5-2-5-2-2-5zM18 13l-1.5 3-3 1.5 3 1.5L18 22l1.5-3 3-1.5-3-1.5-1.5-3z"/></svg>)
 };
 
 // IMPORTANT: Replace this with the address you get after deploying the new contract
