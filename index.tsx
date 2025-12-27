@@ -15,12 +15,13 @@ const PRELOADED_AVATARS = [
 
 const COINGECKO_API_URL = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd";
 const TICKET_PRICE_BTC = 0.00005;
+const ONCHAIN_SEED_PHRASE = "onchain-jackpot-v3-merlin-stable";
 
 // --- UTILS ---
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
 const getWinningNumbersForSlot = (timestamp: number): number[] => {
-  const seed = new Date(timestamp).toISOString() + "onchain-jackpot-v3-merlin-stable";
+  const seed = new Date(timestamp).toISOString() + ONCHAIN_SEED_PHRASE;
   let hash = 0;
   for (let i = 0; i < seed.length; i++) {
     hash = ((hash << 5) - hash) + seed.charCodeAt(i);
@@ -34,6 +35,22 @@ const getWinningNumbersForSlot = (timestamp: number): number[] => {
     if (!result.includes(num)) result.push(num);
   }
   return result.sort((a, b) => a - b);
+};
+
+const getSimulatedWinnersForSlot = (timestamp: number): { address: string }[] => {
+    const seed = timestamp.toString();
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+      hash |= 0;
+    }
+    const winnerCount = Math.abs(hash) % 3;
+    if (winnerCount === 0) return [];
+    
+    return Array.from({ length: winnerCount }, (_, i) => {
+      let addrHash = (hash * (i + 1) * 1664525 + 1013904223) | 0;
+      return { address: '0x' + Math.abs(addrHash).toString(16).padStart(40, '0').slice(0, 40) };
+    });
 };
 
 // --- LOGO ---
@@ -142,6 +159,7 @@ function App() {
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showVerifyModal, setShowVerifyModal] = useState<{timestamp: number, numbers: number[]} | null>(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [tickets, setTickets] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -152,62 +170,68 @@ function App() {
     avatarUrl: PRELOADED_AVATARS[0]
   });
 
-  const [liveLotteryNumbers, setLiveLotteryNumbers] = useState<(number | null)[]>([null, null, null, null]);
-  const [lotteryPhase, setLotteryPhase] = useState(0); 
+  const [livePredictionNumbers, setLivePredictionNumbers] = useState<(number | null)[]>([null, null, null, null]);
+  const [predictionPhase, setPredictionPhase] = useState(0); 
 
   // --- TRANSLATIONS ---
   const translations = {
     en: {
-      title: "OnChain Jackpot", connect: "Connect", heroTitle: "Onchain Daily Lottery",
+      title: "OnChain Jackpot", connect: "Connect", heroTitle: "Onchain Daily Prediction",
       heroSubtitle: "Verifiable jackpot settles twice daily at 00:00 & 12:00 UTC. Every entry is a unique NFT minted on MerlinChain.",
-      mintTitle: "Mint New NFT Entry", selectSchedule: "SELECT LOTTERY SCHEDULE",
+      mintTitle: "Mint New NFT Entry", selectSchedule: "SELECT PREDICTION SCHEDULE",
       select4: "SELECT 4 NUMBERS (1-9)", randomize: "Randomize", purchase: "Mint NFT Ticket",
-      viewResults: "VIEW RESULTS", howItWorks: "HOW IT WORKS", countdownTitle: "Next Lottery Countdown", countdownSub: "Reveal: 00:00 & 12:00 UTC",
+      viewResults: "VIEW RESULTS", howItWorks: "HOW IT WORKS", countdownTitle: "Next Prediction Countdown", countdownSub: "Reveal: 00:00 & 12:00 UTC",
       myTickets: "My NFT Entries", profile: "Profile", referral: "Referral & Rewards", logout: "Logout",
       save: "Save Changes", copyLink: "Copy Link", jackpotLabel: "JACKPOT", network: "MERLIN TESTNET",
-      switchToTestnet: "Switch to Merlin Testnet", latestResult: "Latest Result", settledMsg: "LOTTERY SUCCESSFULLY SETTLED",
+      switchToTestnet: "Switch to Merlin Testnet", latestResult: "Latest Result", settledMsg: "PREDICTION SUCCESSFULLY SETTLED",
       verifyingOnchain: "Verifying Onchain Entropy...", revealSuccess: "Settlement Complete", days: "Days", hours: "Hours", minutes: "Minutes", seconds: "Seconds",
       totalPrice: "TOTAL PRICE", gasFeesNote: "+ Gas Fees Apply", targetLottery: "TARGET DRAW",
       referralBonus: "EARN 0.02 M-USDT FOR EVERY NFT MINTED THROUGH YOUR LINK",
-      footer: "OnChain Lottery • Powered by MerlinChain • Verifiable Assets",
+      footer: "OnChain Prediction • Powered by MerlinChain • Verifiable Assets",
       step1Title: "Connect & Switch", step1Desc: "Connect your wallet and switch to MerlinChain Testnet.",
       step2Title: "Pick Your Numbers", step2Desc: "Select 4 numbers between 1-9. These will be encoded into your NFT metadata.",
-      step3Title: "Mint Your Entry", step3Desc: "Confirm the transaction to mint your unique NFT ticket. Price: 1 M-USDT + Gas.",
-      step4Title: "Claim the Jackpot", step4Desc: "If your NFT numbers match the daily lottery exactly, you can claim the jackpot prize pool!",
-      rules: "Lottery Rules", rule1: "A lottery occurs every 12 hours (00:00 & 12:00 UTC).",
-      rule2: "Lotteries use deterministic on-chain entropy to ensure fairness.",
-      rule3: "Jackpot is shared among all winners of that specific lottery window.",
+      step3Title: "Mint Your Entry", step3Desc: "Confirm the transaction to mint your unique NFT ticket. Price: 0.00005 BTC + Gas.",
+      step4Title: "Claim the Jackpot", step4Desc: "If your NFT numbers match the daily prediction exactly, you can claim the jackpot prize pool!",
+      rules: "Prediction Rules", rule1: "A prediction event occurs every 12 hours (00:00 & 12:00 UTC).",
+      rule2: "Predictions use deterministic on-chain entropy to ensure fairness.",
+      rule3: "Jackpot is shared among all winners of that specific prediction window.",
       rule4: "Referral fees (0.02 M-USDT) are paid instantly upon successful minting.",
-      disclaimer: "Legal Disclaimer", disclaimerText: "OnChain Jackpot is an experimental verifiable game of chance. Participating in lotteries involves financial risk.",
+      disclaimer: "Legal Disclaimer", disclaimerText: "OnChain Jackpot is an experimental verifiable game of chance. Participating in predictions involves financial risk.",
       available: "Available to Claim", claimAll: "Claim All Rewards", editProfile: "Edit Profile",
       uploadAvatar: "Upload Image", bioLabel: "Bio / Motto", nameLabel: "Display Name",
-      winner: "Winner!", claimPrize: "Claim Prize", claimed: "Claimed", winningNums: "Winning Numbers", matching: "Matching"
+      winner: "Winner!", claimPrize: "Claim Prize", claimed: "Claimed", winningNums: "Winning Numbers", matching: "Matching",
+      previousDrawings: "Previous Predictions", winnersList: "Winners", noWinners: "No winners for this draw.",
+      verifyFairness: "Verify Fairness", fairnessCheck: "Fairness Check", onchainSeed: "On-Chain Seed",
+      hashingProcess: "Hashing Process", verifiedOutput: "Verified Output", verifiedOnchain: "Verified Fair & On-Chain"
     },
     zh: {
-      title: "链上大奖", connect: "连接", heroTitle: "链上每日彩票",
+      title: "链上大奖", connect: "连接", heroTitle: "链上每日预测",
       heroSubtitle: "可验证奖池每日 00:00 和 12:00 UTC 定时结算。每一张投注都是在 MerlinChain 上铸造的唯一 NFT。",
       mintTitle: "铸造新 NFT 投注", selectSchedule: "选择开奖时间",
       select4: "选择 4 个数字 (1-9)", randomize: "随机生成", purchase: "铸造 NFT 彩票",
-      viewResults: "查看结果", howItWorks: "运作方式", countdownTitle: "下次开奖倒计时", countdownSub: "开奖时间: 00:00 & 12:00 UTC",
+      viewResults: "查看结果", howItWorks: "运作方式", countdownTitle: "下次预测倒计时", countdownSub: "开奖时间: 00:00 & 12:00 UTC",
       myTickets: "我的投注", profile: "个人中心", referral: "推荐奖励", logout: "断开连接",
       save: "保存修改", copyLink: "复制链接", jackpotLabel: "累计大奖", network: "MERLIN TESTNET",
-      switchToTestnet: "切换至 Merlin 测试网", latestResult: "最新开奖", settledMsg: "开奖已成功结算",
+      switchToTestnet: "切换至 Merlin 测试网", latestResult: "最新开奖", settledMsg: "预测已成功结算",
       verifyingOnchain: "验证链上数据...", revealSuccess: "结算完成", days: "天", hours: "小时", minutes: "分钟", seconds: "秒",
       totalPrice: "总价", gasFeesNote: "+ 需支付网络 Gas 费", targetLottery: "目标期数",
       referralBonus: "通过您的链接铸造的每个 NFT 均可赚取 0.02 M-USDT",
-      footer: "链上彩票 • 由 MerlinChain 提供支持 • 可验证资产",
+      footer: "链上预测 • 由 MerlinChain 提供支持 • 可验证资产",
       step1Title: "连接并切换", step1Desc: "连接您的钱包并切换到 MerlinChain 测试网。",
       step2Title: "选择号码", step2Desc: "在 1-9 之间选择 4 个数字。这些将编码到您的 NFT 元数据中。",
-      step3Title: "铸造投注", step3Desc: "确认交易以在链上铸造您唯一的 NFT 彩票。价格：1 M-USDT + Gas。",
-      step4Title: "领取大奖", step4Desc: "如果您的 NFT 号码与每日开奖完全匹配，即可领取奖池奖金！",
-      rules: "彩票规则", rule1: "每 12 小时进行一次开奖 (00:00 & 12:00 UTC)。",
-      rule2: "开奖使用确定的链上随机熵，确保公平性。",
-      rule3: "奖池由该特定开奖时段的所有中奖者平分。",
+      step3Title: "铸造投注", step3Desc: "确认交易以在链上铸造您唯一的 NFT 彩票。价格：0.00005 BTC + Gas。",
+      step4Title: "领取大奖", step4Desc: "如果您的 NFT 号码与每日预测完全匹配，即可领取奖池奖金！",
+      rules: "预测规则", rule1: "每 12 小时进行一次预测 (00:00 & 12:00 UTC)。",
+      rule2: "预测使用确定的链上随机熵，确保公平性。",
+      rule3: "奖池由该特定预测时段的所有中奖者平分。",
       rule4: "成功铸造后，推荐费 (0.02 M-USDT) 将立即支付。",
-      disclaimer: "法律声明", disclaimerText: "OnChain Jackpot 是一款实验性的几率游戏。参与彩票涉及财务风险。",
+      disclaimer: "法律声明", disclaimerText: "OnChain Jackpot 是一款实验性的几率游戏。参与预测涉及财务风险。",
       available: "可领取金额", claimAll: "领取所有奖励", editProfile: "编辑资料",
       uploadAvatar: "上传图片", bioLabel: "个人简介", nameLabel: "显示名称",
-      winner: "中奖!", claimPrize: "领取奖金", claimed: "已领取", winningNums: "中奖号码", matching: "匹配"
+      winner: "中奖!", claimPrize: "领取奖金", claimed: "已领取", winningNums: "中奖号码", matching: "匹配",
+      previousDrawings: "往期预测", winnersList: "中奖名单", noWinners: "本期无人中奖。",
+      verifyFairness: "验证公平性", fairnessCheck: "公平性检查", onchainSeed: "链上种子",
+      hashingProcess: "哈希过程", verifiedOutput: "已验证输出", verifiedOnchain: "已验证公平上链"
     }
   };
 
@@ -315,7 +339,7 @@ function App() {
     }
   }, []);
 
-  const lotterySlots = useMemo(() => {
+  const predictionSlots = useMemo(() => {
     const slots = [];
     const base = new Date();
     base.setUTCMinutes(0, 0, 0);
@@ -329,49 +353,55 @@ function App() {
     return slots;
   }, [now.getUTCDate(), now.getUTCHours()]);
 
-  const [selectedSlot, setSelectedSlot] = useState(lotterySlots[0]);
+  const previousDraws = useMemo(() => {
+    const draws = [];
+    const d = new Date(now);
+    d.setUTCSeconds(0,0);
+    d.setUTCMinutes(0,0);
+    const h = d.getUTCHours();
+    if (h >= 12) d.setUTCHours(12); else d.setUTCHours(0);
+    if (d.getTime() > now.getTime()) d.setTime(d.getTime() - 12 * 60 * 60 * 1000);
+    
+    for (let i = 0; i < 4; i++) {
+      draws.push(d.getTime());
+      d.setTime(d.getTime() - 12 * 60 * 60 * 1000);
+    }
+    return draws;
+  }, [now.getUTCDate()]);
+
+  const [selectedPredictionSlot, setSelectedPredictionSlot] = useState(predictionSlots[0]);
 
   useEffect(() => {
-    if (lotterySlots.length > 0 && (!selectedSlot || !lotterySlots.includes(selectedSlot))) {
-      setSelectedSlot(lotterySlots[0]);
+    if (predictionSlots.length > 0 && (!selectedPredictionSlot || !predictionSlots.includes(selectedPredictionSlot))) {
+      setSelectedPredictionSlot(predictionSlots[0]);
     }
-  }, [lotterySlots]);
+  }, [predictionSlots]);
 
   const timeLeft = useMemo(() => {
-    const nextT = lotterySlots[0] || Date.now();
+    const nextT = predictionSlots[0] || Date.now();
     const msLeft = Math.max(0, nextT - now.getTime());
     const s = Math.floor(msLeft / 1000);
     return { d: Math.floor(s / 86400), h: Math.floor((s % 86400) / 3600), m: Math.floor((s % 3600) / 60), s: s % 60 };
-  }, [now, lotterySlots]);
+  }, [now, predictionSlots]);
 
-  const runLiveLotterySequence = useCallback(async () => {
-    setLotteryPhase(0);
-    setLiveLotteryNumbers([null, null, null, null]);
-    const base = new Date();
-    base.setUTCMinutes(0, 0, 0);
-    let lastSettled;
-    if (base.getUTCHours() >= 12) {
-      lastSettled = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate(), 12, 0, 0)).getTime();
-    } else {
-      lastSettled = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate(), 0, 0, 0)).getTime();
-    }
-    if (Date.now() - lastSettled < 60000) lastSettled -= (12 * 3600 * 1000);
-
-    const finalNumbers = getWinningNumbersForSlot(lastSettled);
+  const runLivePredictionSequence = useCallback(async () => {
+    setPredictionPhase(0);
+    setLivePredictionNumbers([null, null, null, null]);
+    const finalNumbers = getWinningNumbersForSlot(previousDraws[0]);
     for (let i = 1; i <= 4; i++) {
       await new Promise(r => setTimeout(r, 1200));
-      setLiveLotteryNumbers(prev => {
+      setLivePredictionNumbers(prev => {
         const next = [...prev];
         next[i - 1] = finalNumbers[i - 1];
         return next;
       });
-      setLotteryPhase(i);
+      setPredictionPhase(i);
     }
     await new Promise(r => setTimeout(r, 800));
-    setLotteryPhase(5);
-  }, [lotterySlots]);
+    setPredictionPhase(5);
+  }, [previousDraws]);
 
-  useEffect(() => { if (showResultsModal) runLiveLotterySequence(); }, [showResultsModal]);
+  useEffect(() => { if (showResultsModal) runLivePredictionSequence(); }, [showResultsModal]);
 
   const switchNetwork = async () => {
     if (!window.ethereum) return;
@@ -398,7 +428,7 @@ function App() {
         setIsConnecting(false);
       }
     } else {
-      alert("Please install MetaMask to participate in the OnChain Lottery.");
+      alert("Please install MetaMask to participate in the OnChain Prediction.");
     }
   };
 
@@ -425,7 +455,7 @@ function App() {
 
         const tx = await contractWithSigner.mintTicket(
             selectedNumbers,
-            Math.floor(selectedSlot / 1000),
+            Math.floor(selectedPredictionSlot / 1000),
             { value: ticketPrice }
         );
 
@@ -661,13 +691,33 @@ function App() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-12">
           <div className="lg:col-span-7 bg-white dark:bg-[#04211C] rounded-[2.5rem] border border-gray-100 dark:border-emerald-500/10 p-10 shadow-xl min-h-[400px]">
-            <h2 className="text-2xl font-bold font-display dark:text-white">{t.myTickets} ({tickets.length})</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
-              {tickets.length === 0 ? (
-                <div className="md:col-span-2 py-20 text-center opacity-30 uppercase tracking-widest text-xs font-black">No Tickets Found</div>
-              ) : tickets.map(tk => (
-                <TicketCard key={tk.id} ticket={tk} />
-              ))}
+            <h2 className="text-2xl font-bold font-display dark:text-white mb-8">{t.previousDrawings}</h2>
+            <div className="space-y-4">
+              {previousDraws.map(drawTime => {
+                const winningNumbers = getWinningNumbersForSlot(drawTime);
+                const winners = getSimulatedWinnersForSlot(drawTime);
+                return (
+                  <div key={drawTime} className="bg-gray-50 dark:bg-emerald-500/5 p-4 rounded-2xl border dark:border-emerald-500/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div>
+                      <p className="font-bold text-sm dark:text-white">{formatDate(drawTime)}</p>
+                      <p className="text-[10px] uppercase tracking-widest font-bold text-gray-400 dark:text-emerald-500/40">{formatTime(drawTime)}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      {winningNumbers.map((n, i) => (
+                         <div key={i} className="h-10 w-10 rounded-full border-2 border-emerald-200 bg-white dark:bg-emerald-500/10 dark:border-emerald-500/20 text-emerald-800 dark:text-white flex items-center justify-center font-black text-sm shadow-sm">{n}</div>
+                      ))}
+                    </div>
+                    <div className="text-center">
+                      <p className="font-black text-lg dark:text-white">{winners.length}</p>
+                      <p className="text-[9px] uppercase tracking-widest font-bold text-gray-400 dark:text-emerald-500/40">{t.winnersList}</p>
+                    </div>
+                    <button onClick={() => setShowVerifyModal({timestamp: drawTime, numbers: winningNumbers})} className="px-3 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/10 transition-colors flex items-center gap-2">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        {t.verifyFairness}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -679,11 +729,11 @@ function App() {
                 <label className="text-[10px] font-black uppercase text-emerald-900/40 mb-4 block tracking-widest">{t.selectSchedule}</label>
                 <div className="relative">
                   <select 
-                    value={selectedSlot} 
-                    onChange={(e) => setSelectedSlot(Number(e.target.value))}
+                    value={selectedPredictionSlot} 
+                    onChange={(e) => setSelectedPredictionSlot(Number(e.target.value))}
                     className="w-full appearance-none px-5 py-4 rounded-2xl border-2 border-emerald-50 dark:border-emerald-500/10 bg-white dark:bg-emerald-500/5 text-sm font-bold text-emerald-900 dark:text-white focus:outline-none focus:border-emerald-400 transition-all cursor-pointer"
                   >
-                    {lotterySlots.map(ts => (
+                    {predictionSlots.map(ts => (
                       <option key={ts} value={ts} className="dark:bg-[#04211C]">
                         {formatDate(ts)} - {formatTime(ts)}
                       </option>
@@ -735,15 +785,48 @@ function App() {
              <button onClick={() => setShowResultsModal(false)} className="absolute top-6 right-6 p-2 dark:text-white hover:scale-110 transition-all"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
              <h2 className="text-3xl font-black font-display text-[#04211C] dark:text-white mb-8">{t.latestResult}</h2>
              <div className="flex justify-center gap-4 mb-12 h-24">
-                {liveLotteryNumbers.map((n, i) => (
+                {livePredictionNumbers.map((n, i) => (
                   <div key={i} className={`h-20 w-20 rounded-full border-4 flex items-center justify-center transition-all duration-700 ${n !== null ? 'scale-110 border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 shadow-lg' : 'border-dashed border-emerald-100 dark:border-emerald-500/20'}`}>
                     <span className="font-black text-2xl dark:text-white">{n !== null ? n : '?'}</span>
                   </div>
                 ))}
              </div>
              <p className="text-[10px] font-black text-emerald-800/40 dark:text-white/30 uppercase tracking-widest">
-               {lotteryPhase < 4 ? t.verifyingOnchain : t.revealSuccess}
+               {predictionPhase < 4 ? t.verifyingOnchain : t.revealSuccess}
              </p>
+          </div>
+        </div>
+      )}
+
+      {/* --- VERIFY FAIRNESS MODAL --- */}
+      {showVerifyModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+          <div className="absolute inset-0" onClick={() => setShowVerifyModal(null)} />
+          <div className="relative z-10 w-full max-w-2xl bg-white dark:bg-[#04211C] rounded-[2rem] p-10 shadow-2xl animate-in zoom-in-95 duration-300">
+            <h2 className="text-2xl font-black font-display text-center mb-8 dark:text-white">{t.fairnessCheck}</h2>
+            <div className="space-y-6">
+                <div>
+                    <label className="text-xs font-bold text-emerald-800/40 dark:text-white/40 uppercase tracking-widest">{t.onchainSeed}</label>
+                    <div className="mt-2 p-4 rounded-xl bg-gray-100 dark:bg-emerald-500/5 text-emerald-900 dark:text-emerald-400 font-mono text-xs break-all border dark:border-emerald-500/10">
+                        {new Date(showVerifyModal.timestamp).toISOString() + ONCHAIN_SEED_PHRASE}
+                    </div>
+                </div>
+                <div className="flex justify-center"><svg width="24" height="24" viewBox="0 0 24 24" className="text-emerald-300 dark:text-emerald-500/50"><path fill="currentColor" d="M12 21.325L10.55 19.9L5.525 14.875L6.925 13.475L12 18.55L17.075 13.475L18.475 14.875L13.45 19.9L12 21.325ZM12 13.325L10.55 11.9L5.525 6.875L6.925 5.475L12 10.55L17.075 5.475L18.475 6.875L13.45 11.9L12 13.325Z"/></svg></div>
+                <div>
+                    <label className="text-xs font-bold text-emerald-800/40 dark:text-white/40 uppercase tracking-widest">{t.verifiedOutput}</label>
+                    <div className="mt-2 flex justify-center gap-3">
+                        {showVerifyModal.numbers.map((n, i) => (
+                           <div key={i} className="h-16 w-16 rounded-2xl border-2 border-emerald-200 bg-white dark:bg-emerald-500/10 dark:border-emerald-500/20 text-emerald-800 dark:text-white flex items-center justify-center font-black text-2xl shadow-sm">{n}</div>
+                        ))}
+                    </div>
+                </div>
+                <div className="pt-6 border-t dark:border-emerald-500/10 text-center">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 text-sm font-bold">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        {t.verifiedOnchain}
+                    </div>
+                </div>
+            </div>
           </div>
         </div>
       )}

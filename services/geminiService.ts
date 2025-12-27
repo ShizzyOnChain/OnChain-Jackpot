@@ -2,7 +2,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
 /**
- * Generates lucky lottery numbers using Gemini AI.
+ * Generates lucky prediction numbers using Gemini AI.
  * Uses gemini-3-flash-preview for quick and cost-effective text generation.
  */
 export const getLuckyNumbers = async (): Promise<{ numbers: number[]; reason: string }> => {
@@ -12,7 +12,7 @@ export const getLuckyNumbers = async (): Promise<{ numbers: number[]; reason: st
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: "Suggest 4 unique lucky lottery numbers between 1 and 9. Provide a short, fun reason for the selection.",
+      contents: "Suggest 4 unique lucky prediction numbers between 1 and 9. Provide a short, fun reason for the selection.",
       config: {
         responseMimeType: "application/json",
         responseSchema: {

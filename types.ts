@@ -15,7 +15,7 @@ export interface Winner {
   date: string;
 }
 
-export interface HistoricalLottery {
+export interface HistoricalPrediction {
   id: string;
   numbers: number[];
   date: string;
@@ -24,14 +24,14 @@ export interface HistoricalLottery {
   txHash: string;
 }
 
-export interface LotteryConfig {
+export interface PredictionConfig {
   numberCount: number;
   maxNumber: number;
   ticketPrice: number;
   currency: string;
 }
 
-export enum LotteryStatus {
+export enum PredictionStatus {
   OPEN = 'OPEN',
   LOCKED = 'LOCKED',
   SETTLING = 'SETTLING'

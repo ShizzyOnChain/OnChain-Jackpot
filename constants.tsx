@@ -12,7 +12,7 @@ export const COLORS = {
   shadow: "0 18px 50px rgba(6,58,48,0.10)",
 };
 
-export const LOTTERY_CONFIG = {
+export const PREDICTION_CONFIG = {
   numberCount: 4,
   maxNumber: 9,
   ticketPrice: 1.00,

@@ -1,9 +1,10 @@
+
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { COLORS, LOTTERY_CONFIG, ICONS, MERLIN_NETWORK } from "./constants";
+import { COLORS, PREDICTION_CONFIG, ICONS, MERLIN_NETWORK } from "./constants";
 import { Logo } from "./components/Logo";
 import { Card } from "./components/Card";
 import { getLuckyNumbers } from "./services/geminiService";
-import { Ticket, HistoricalLottery } from "./types";
+import { Ticket, HistoricalPrediction } from "./types";
 
 declare global {
   interface Window {
@@ -120,11 +121,11 @@ const translations = {
     switch: "Switch to Merlin",
     wrongNetwork: "Wrong Network",
     liveActivity: "Live Onchain Activity",
-    heroTitle: "Decentralized Onchain Daily Lottery",
+    heroTitle: "Decentralized Onchain Daily Prediction",
     heroSubtitle: "Verifiable jackpot settles twice daily at 00:00 & 12:00 UTC. Every entry is a unique NFT minted on MerlinChain.",
     prizePool: "Live Prize Pool",
-    currentLottery: "Current Lottery",
-    countdown: "Next Lottery Countdown",
+    currentPrediction: "Current Prediction",
+    countdown: "Next Prediction Countdown",
     countdownSub: "Winning numbers revealed at 00:00 & 12:00 UTC daily",
     days: "Days",
     hours: "Hours",
@@ -133,10 +134,10 @@ const translations = {
     latestResult: "Latest Result",
     noEntries24h: "No entries in last 12 hours",
     pendingResult: "Waiting for next onchain settlement",
-    historicalLotteries: "Historical Lotteries",
+    historicalPredictions: "Historical Predictions",
     historicalSub: "Previous results and settlement data",
     noHistory: "No historical data yet",
-    historyAuto: "The history section will populate automatically after the first lottery is settled on-chain.",
+    historyAuto: "The history section will populate automatically after the first prediction is settled on-chain.",
     yourTickets: "My NFT Entries",
     ticketsSub: "Verifiable NFT tickets owned by your wallet",
     noActive: "No NFT entries found in your profile",
@@ -157,7 +158,7 @@ const translations = {
     metamaskPrompt: "Approve Minting in MetaMask...",
     processing: "Minting NFT on MerlinChain...",
     gasPrompt: "Your numbers are permanently stored on-chain",
-    footer: "OnChain Lottery • Powered by MerlinChain • Verifiable Assets",
+    footer: "OnChain Prediction • Powered by MerlinChain • Verifiable Assets",
     howItWorks: "How it Works",
     step1Title: "Connect & Switch",
     step1Desc: "Connect your wallet and switch to MerlinChain Mainnet.",
@@ -166,17 +167,17 @@ const translations = {
     step3Title: "Mint Your Entry",
     step3Desc: "Confirm the transaction to mint your unique NFT ticket. Price: 1 M-USDT + Network Gas.",
     step4Title: "Claim the Jackpot",
-    step4Desc: "If your NFT numbers match the daily lottery exactly, you can claim the jackpot prize pool!",
+    step4Desc: "If your NFT numbers match the daily prediction exactly, you can claim the jackpot prize pool!",
     claimPrize: "Claim Prize",
     claiming: "Claiming...",
     claimed: "Claimed",
     gasToClaim: "Pay gas to transfer winnings",
     winner: "Winner!",
     winMsg: "Congratulations! You won the jackpot!",
-    selectLottery: "Select Lottery Schedule",
-    targetLottery: "Target Lottery Date",
-    lotteryAt: "Lottery at",
-    upcomingLotteries: "Upcoming Lotteries",
+    selectPrediction: "Select Prediction Schedule",
+    targetPrediction: "Target Prediction Date",
+    predictionAt: "Prediction at",
+    upcomingPredictions: "Upcoming Predictions",
     batchMint: "Batch Minting",
     quantity: "Quantity",
     referral: "Referral & Rewards",
@@ -185,10 +186,10 @@ const translations = {
     statsPlayers: "Active Players",
     referralBonus: "EARN 0.02 M-USDT FOR EVERY NFT MINTED THROUGH YOUR LINK",
     viewResults: "View Results",
-    lotteryLive: "Lottery Live...",
+    predictionLive: "Prediction Live...",
     verifyingOnchain: "Verifying Onchain Entropy",
-    lotteryResultMsg: "Lottery sequence successfully completed on MerlinChain.",
-    lastSettled: "Last Settled Lottery",
+    predictionResultMsg: "Prediction sequence successfully completed on MerlinChain.",
+    lastSettled: "Last Settled Prediction",
     profile: "My Profile",
     editProfile: "Edit Profile",
     username: "Display Name",
@@ -197,13 +198,13 @@ const translations = {
     saveProfile: "Save Changes",
     cancel: "Cancel",
     logout: "Disconnect Wallet",
-    rules: "Lottery Rules",
-    rule1: "A lottery occurs every 12 hours (00:00 & 12:00 UTC).",
-    rule2: "Lotteries use deterministic on-chain entropy to ensure fairness.",
-    rule3: "Jackpot is shared among all winners of that specific lottery window.",
+    rules: "Prediction Rules",
+    rule1: "A prediction event occurs every 12 hours (00:00 & 12:00 UTC).",
+    rule2: "Predictions use deterministic on-chain entropy to ensure fairness.",
+    rule3: "Jackpot is shared among all winners of that specific prediction window.",
     rule4: "Referral fees (0.02 M-USDT) are paid instantly upon successful minting.",
     disclaimer: "Legal Disclaimer",
-    disclaimerText: "OnChain Jackpot is a decentralized game of chance. Participating in lotteries involves risk. Digital assets are highly volatile. Use only funds you can afford to lose.",
+    disclaimerText: "OnChain Jackpot is a decentralized game of chance. Participating in predictions involves risk. Digital assets are highly volatile. Use only funds you can afford to lose.",
     referralLink: "Your Referral Link",
     totalEarned: "Total Earned",
     claimRewards: "Claim Rewards",
@@ -212,7 +213,7 @@ const translations = {
     nftCollection: "Jackpot Collection",
     rarityStandard: "Standard Edition",
     rarityWinner: "Winner Edition",
-    lotteryIdLabel: "Lottery #",
+    predictionIdLabel: "Prediction #",
     merlinNetwork: "Merlin Mainnet",
     matching: "Matching Numbers",
     winningNums: "Winning Numbers"
@@ -224,11 +225,11 @@ const translations = {
     switch: "切换至 Merlin",
     wrongNetwork: "网络错误",
     liveActivity: "链上实时动态",
-    heroTitle: "去中心化链上每日彩票",
+    heroTitle: "去中心化链上每日预测",
     heroSubtitle: "可验证大奖每日 00:00 和 12:00 UTC 结算。每一张彩票都是在 MerlinChain 上铸造的唯一 NFT。",
     prizePool: "实时奖池",
-    currentLottery: "当前期数",
-    countdown: "下次开奖倒计时",
+    currentPrediction: "当前期数",
+    countdown: "下次预测倒计时",
     countdownSub: "每日 00:00 和 12:00 UTC 揭晓中奖号码",
     days: "天",
     hours: "小时",
@@ -237,10 +238,10 @@ const translations = {
     latestResult: "最新开奖",
     noEntries24h: "过去 12 小时内无投注",
     pendingResult: "等待下一次链上结算",
-    historicalLotteries: "历史彩票",
+    historicalPredictions: "历史预测",
     historicalSub: "历史结果与结算数据",
     noHistory: "尚无历史数据",
-    historyAuto: "在第一期彩票在链上结算后，历史板块将自动填充。",
+    historyAuto: "在第一期预测在链上结算后，历史板块将自动填充。",
     yourTickets: "我的 NFT 投注",
     ticketsSub: "您钱包拥有的可验证 NFT 彩票",
     noActive: "您的个人资料中未发现 NFT 投注",
@@ -261,7 +262,7 @@ const translations = {
     metamaskPrompt: "请在 MetaMask 中确认铸造...",
     processing: "正在 MerlinChain 上铸造 NFT...",
     gasPrompt: "您的号码将永久存储在链上",
-    footer: "链上彩票 • 由 MerlinChain 提供支持 • 可验证资产",
+    footer: "链上预测 • 由 MerlinChain 提供支持 • 可验证资产",
     howItWorks: "运作方式",
     step1Title: "连接与切换",
     step1Desc: "连接您的钱包并切换到 MerlinChain 主网。",
@@ -270,17 +271,17 @@ const translations = {
     step3Title: "铸造投注",
     step3Desc: "确认交易以在链上铸造您唯一的 NFT 彩票。价格：1 M-USDT + 网络 Gas。",
     step4Title: "领取大奖",
-    step4Desc: "如果您的 NFT 号码与每日开奖完全匹配，即可领取奖池奖金！",
+    step4Desc: "如果您的 NFT 号码与每日预测完全匹配，即可领取奖池奖金！",
     claimPrize: "领取奖金",
     claiming: "领取中...",
     claimed: "已领取",
     gasToClaim: "支付 Gas 转移奖金",
     winner: "中奖！",
     winMsg: "恭喜！您赢得了大奖！",
-    selectLottery: "选择开奖时间",
-    targetLottery: "目标彩票日期",
-    lotteryAt: "开奖时间",
-    upcomingLotteries: "近期开奖",
+    selectPrediction: "选择开奖时间",
+    targetPrediction: "目标预测日期",
+    predictionAt: "开奖时间",
+    upcomingPredictions: "近期开奖",
     batchMint: "批量铸造",
     quantity: "数量",
     referral: "推荐与奖励",
@@ -289,10 +290,10 @@ const translations = {
     statsPlayers: "活跃玩家",
     referralBonus: "通过您的链接铸造的每个 NFT 均可赚取 0.02 M-USDT",
     viewResults: "查看结果",
-    lotteryLive: "正在直播开奖...",
+    predictionLive: "正在直播开奖...",
     verifyingOnchain: "验证链上随机熵",
-    lotteryResultMsg: "MerlinChain 上的开奖序列已成功完成。",
-    lastSettled: "上次结算开奖",
+    predictionResultMsg: "MerlinChain 上的开奖序列已成功完成。",
+    lastSettled: "上次结算预测",
     profile: "个人中心",
     editProfile: "编辑资料",
     username: "显示名称",
@@ -301,7 +302,7 @@ const translations = {
     saveProfile: "保存修改",
     cancel: "取消",
     logout: "断开钱包",
-    rules: "彩票规则",
+    rules: "预测规则",
     rule1: "每 12 小时进行一次开奖 (00:00 & 12:00 UTC)。",
     rule2: "开奖使用确定的链上随机熵，确保公平性。",
     rule3: "奖池由该特定开奖时段的所有中奖者平分。",
@@ -316,7 +317,7 @@ const translations = {
     nftCollection: "Jackpot 系列",
     rarityStandard: "标准版",
     rarityWinner: "中奖版",
-    lotteryIdLabel: "期号 #",
+    predictionIdLabel: "期号 #",
     merlinNetwork: "Merlin 主网",
     matching: "匹配号码",
     winningNums: "中奖号码"
@@ -333,9 +334,9 @@ export default function App() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   
-  const [isLiveLottery, setIsLiveLottery] = useState(false);
-  const [liveLotteryNumbers, setLiveLotteryNumbers] = useState<(number | null)[]>([null, null, null, null]);
-  const [lotteryPhase, setLotteryPhase] = useState(0); 
+  const [isLivePrediction, setIsLivePrediction] = useState(false);
+  const [livePredictionNumbers, setLivePredictionNumbers] = useState<(number | null)[]>([null, null, null, null]);
+  const [predictionPhase, setPredictionPhase] = useState(0); 
   
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
   const [tickets, setTickets] = useState<(Ticket & { txHash?: string })[]>([]);
@@ -372,7 +373,7 @@ export default function App() {
 
   const [recentMints, setRecentMints] = useState<{addr: string, nums: number[], time: string}[]>([]);
 
-  const lotterySlots = useMemo(() => {
+  const predictionSlots = useMemo(() => {
     const slots: number[] = [];
     const base = new Date();
     base.setUTCMinutes(0, 0, 0);
@@ -389,7 +390,7 @@ export default function App() {
     return slots;
   }, [now.getUTCDate(), now.getUTCHours()]);
 
-  const lastSettledLotteryTime = useMemo(() => {
+  const lastSettledPredictionTime = useMemo(() => {
     const d = new Date();
     d.setUTCMinutes(0, 0, 0);
     const h = d.getUTCHours();
@@ -402,13 +403,13 @@ export default function App() {
     return d.getTime();
   }, [now.getUTCDate(), now.getUTCHours()]);
 
-  const [selectedLotteryTime, setSelectedLotteryTime] = useState<number>(lotterySlots[0] || Date.now());
+  const [selectedPredictionTime, setSelectedPredictionTime] = useState<number>(predictionSlots[0] || Date.now());
 
   useEffect(() => {
-    if (lotterySlots.length > 0 && (!selectedLotteryTime || !lotterySlots.includes(selectedLotteryTime))) {
-      setSelectedLotteryTime(lotterySlots[0]);
+    if (predictionSlots.length > 0 && (!selectedPredictionTime || !predictionSlots.includes(selectedPredictionTime))) {
+      setSelectedPredictionTime(predictionSlots[0]);
     }
-  }, [lotterySlots]);
+  }, [predictionSlots]);
 
   const isCorrectChain = useMemo(() => {
     if (!chainId) return false;
@@ -419,21 +420,21 @@ export default function App() {
   const truncatedAddress = account ? `${account.slice(0, 6)}...${account.slice(-4)}` : null;
 
   // RESET FOR MAINNET: Start with an empty history array for fresh start
-  const historicalLotteries = useMemo<HistoricalLottery[]>(() => {
+  const historicalPredictions = useMemo<HistoricalPrediction[]>(() => {
     return [];
-  }, [lastSettledLotteryTime]);
+  }, [lastSettledPredictionTime]);
 
-  const nextLotteryTime = lotterySlots[0] || Date.now();
-  const [msLeft, setMsLeft] = useState(nextLotteryTime - Date.now());
+  const nextPredictionTime = predictionSlots[0] || Date.now();
+  const [msLeft, setMsLeft] = useState(nextPredictionTime - Date.now());
 
   useEffect(() => {
     const timer = setInterval(() => {
       const current = Date.now();
       setNow(new Date());
-      setMsLeft(Math.max(0, nextLotteryTime - current));
+      setMsLeft(Math.max(0, nextPredictionTime - current));
     }, 1000);
     return () => clearInterval(timer);
-  }, [nextLotteryTime]);
+  }, [nextPredictionTime]);
 
   const timeLeft = useMemo(() => {
     const totalSeconds = Math.floor(msLeft / 1000);
@@ -444,27 +445,27 @@ export default function App() {
     return { days, hours, minutes, seconds };
   }, [msLeft]);
 
-  const runLiveLotterySequence = async () => {
-    setIsLiveLottery(true);
-    setLotteryPhase(0);
-    setLiveLotteryNumbers([null, null, null, null]);
-    const finalNumbers = getWinningNumbersForSlot(lastSettledLotteryTime);
+  const runLivePredictionSequence = async () => {
+    setIsLivePrediction(true);
+    setPredictionPhase(0);
+    setLivePredictionNumbers([null, null, null, null]);
+    const finalNumbers = getWinningNumbersForSlot(lastSettledPredictionTime);
     for(let i=1; i<=4; i++) {
       await new Promise(r => setTimeout(r, 1800));
-      setLiveLotteryNumbers(prev => {
+      setLivePredictionNumbers(prev => {
         const next = [...prev];
         next[i-1] = finalNumbers[i-1];
         return next;
       });
-      setLotteryPhase(i);
+      setPredictionPhase(i);
     }
     await new Promise(r => setTimeout(r, 1200));
-    setLotteryPhase(5);
+    setPredictionPhase(5);
   };
 
   useEffect(() => {
-    if(showResultsModal && !isLiveLottery) {
-      runLiveLotterySequence();
+    if(showResultsModal && !isLivePrediction) {
+      runLivePredictionSequence();
     }
   }, [showResultsModal]);
 
@@ -558,15 +559,15 @@ export default function App() {
   const toggleNumber = (num: number) => {
     if (selectedNumbers.includes(num)) {
       setSelectedNumbers(prev => prev.filter(n => n !== num));
-    } else if (selectedNumbers.length < LOTTERY_CONFIG.numberCount) {
+    } else if (selectedNumbers.length < PREDICTION_CONFIG.numberCount) {
       setSelectedNumbers(prev => [...prev, num]);
     }
   };
 
   const handleRandomize = useCallback(() => {
     const nums: number[] = [];
-    while (nums.length < LOTTERY_CONFIG.numberCount) {
-      const r = Math.floor(Math.random() * LOTTERY_CONFIG.maxNumber) + 1;
+    while (nums.length < PREDICTION_CONFIG.numberCount) {
+      const r = Math.floor(Math.random() * PREDICTION_CONFIG.maxNumber) + 1;
       if (!nums.includes(r)) nums.push(r);
     }
     setSelectedNumbers(nums.sort((a, b) => a - b));
@@ -584,14 +585,14 @@ export default function App() {
   const purchaseTicket = async () => {
     if (!account) { await connectWallet(); return; }
     if (!isCorrectChain) { await switchNetwork(); return; }
-    if (selectedNumbers.length !== LOTTERY_CONFIG.numberCount) return;
+    if (selectedNumbers.length !== PREDICTION_CONFIG.numberCount) return;
 
     try {
       setTxStatus('awaiting');
       const contractAddress = CONTRACT_ADDRESS; 
       const data = "0xa0712d68" + 
         selectedNumbers.map(n => n.toString(16).padStart(64, '0')).join('') + 
-        Math.floor(selectedLotteryTime / 1000).toString(16).padStart(64, '0');
+        Math.floor(selectedPredictionTime / 1000).toString(16).padStart(64, '0');
 
       const transactionParameters = {
         to: contractAddress,
@@ -621,7 +622,7 @@ export default function App() {
           id: (txHash.slice(0, 10) + i).toUpperCase(),
           numbers: nums,
           timestamp: Date.now(),
-          targetLottery: selectedLotteryTime,
+          targetLottery: selectedPredictionTime,
           txHash: txHash
         });
       }
@@ -697,7 +698,7 @@ export default function App() {
               </div>
             )}
 
-            <button onClick={() => { setIsLiveLottery(false); setShowResultsModal(true); }} className="px-3 py-2 rounded-xl text-xs font-black uppercase tracking-widest border transition-all hover:bg-emerald-50 flex items-center gap-2" style={{ borderColor: COLORS.mintStroke, color: COLORS.midnight }}>
+            <button onClick={() => { setIsLivePrediction(false); setShowResultsModal(true); }} className="px-3 py-2 rounded-xl text-xs font-black uppercase tracking-widest border transition-all hover:bg-emerald-50 flex items-center gap-2" style={{ borderColor: COLORS.mintStroke, color: COLORS.midnight }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
               <span className="hidden md:inline">{t.viewResults}</span>
             </button>
@@ -750,21 +751,21 @@ export default function App() {
       {/* Results Modal */}
       {showResultsModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center px-6 py-12">
-          <div className="absolute inset-0 bg-[#063A30]/80 backdrop-blur-md" onClick={() => { setShowResultsModal(false); setIsLiveLottery(false); }} />
+          <div className="absolute inset-0 bg-[#063A30]/80 backdrop-blur-md" onClick={() => { setShowResultsModal(false); setIsLivePrediction(false); }} />
           <div className="relative z-10 w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
             <div className="p-10 text-center">
               <div className="flex justify-between items-center mb-8">
                 <div className="text-left">
                   <h2 className="text-3xl font-black font-display" style={{ color: COLORS.midnight }}>{t.latestResult}</h2>
-                  <div className="text-[9px] font-black uppercase tracking-widest opacity-40 mt-1">{t.lastSettled}: {formatDate(lastSettledLotteryTime)} {formatTime(lastSettledLotteryTime)}</div>
+                  <div className="text-[9px] font-black uppercase tracking-widest opacity-40 mt-1">{t.lastSettled}: {formatDate(lastSettledPredictionTime)} {formatTime(lastSettledPredictionTime)}</div>
                 </div>
-                <button onClick={() => { setShowResultsModal(false); setIsLiveLottery(false); }} className="h-10 w-10 flex items-center justify-center rounded-full bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors">
+                <button onClick={() => { setShowResultsModal(false); setIsLivePrediction(false); }} className="h-10 w-10 flex items-center justify-center rounded-full bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
               </div>
 
               <div className="flex justify-center gap-4 md:gap-6 mb-12 relative h-24">
-                {liveLotteryNumbers.map((n, i) => (
+                {livePredictionNumbers.map((n, i) => (
                   <div key={i} className={`h-16 w-16 md:h-20 md:w-20 rounded-full border-4 flex items-center justify-center transition-all duration-700 transform ${n !== null ? 'scale-110 rotate-12 border-emerald-500 bg-emerald-50 shadow-lg' : 'border-dashed border-emerald-100 bg-emerald-50/30'}`}>
                     <span className={`font-black text-2xl ${n !== null ? 'text-emerald-900 animate-in fade-in zoom-in' : 'text-emerald-200'}`}>
                       {n !== null ? n : '?'}
@@ -774,11 +775,11 @@ export default function App() {
               </div>
 
               <div className="flex flex-col items-center gap-4">
-                {lotteryPhase < 5 ? (
+                {predictionPhase < 5 ? (
                   <div className="flex flex-col items-center gap-3">
                     <div className="flex items-center gap-3 px-6 py-2 rounded-full bg-emerald-900 text-white text-[11px] font-black uppercase tracking-[0.2em] animate-pulse">
                       <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
-                      {t.lotteryLive}
+                      {t.predictionLive}
                     </div>
                     <div className="text-[10px] font-bold text-emerald-800/40 uppercase tracking-[0.1em]">
                       {t.verifyingOnchain}
@@ -790,7 +791,7 @@ export default function App() {
                       SUCCESS
                     </div>
                     <div className="text-[10px] font-bold text-emerald-800/40 uppercase tracking-[0.1em]">
-                      {t.lotteryResultMsg}
+                      {t.predictionResultMsg}
                     </div>
                   </div>
                 )}
@@ -974,7 +975,7 @@ export default function App() {
                   <div className="flex justify-between items-center mb-10"><div className="flex flex-col"><p className="text-[10px] font-black opacity-40 uppercase tracking-[0.25em] mb-1">{t.prizePool}</p><div className="h-1 w-12 bg-emerald-500 rounded-full shadow-[0_0_10px_#10b981]" /></div><div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" /><span className="text-[8px] font-black uppercase tracking-widest opacity-60">LIVE UPDATING</span></div></div>
                   <div className="flex flex-col gap-2"><div className="text-[11px] font-black text-emerald-400 uppercase tracking-[0.3em] ml-1">{t.jackpotLabel}</div><div className="flex items-baseline gap-4"><span className="text-7xl font-black font-display tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white to-white/70 drop-shadow-[0_8px_16px_rgba(0,0,0,0.3)]">{jackpot.toFixed(2)}</span><div className="flex flex-col"><span className="text-xl font-black text-emerald-400 tracking-tighter leading-none mb-1">M-USDT</span><div className="flex gap-0.5">{[1,2,3].map(i => <div key={i} className="h-1 w-1 rounded-full bg-emerald-500/30" />)}</div></div></div></div>
                   <div className="mt-12 pt-8 border-t border-white/5 flex justify-between items-center">
-                    <div className="flex flex-col"><span className="text-[9px] font-black uppercase tracking-widest opacity-30 mb-1">{t.currentLottery}</span><div className="flex items-center gap-2"><span className="text-sm font-bold tracking-tight">#{historicalLotteries.length + 1}</span><span className="text-[8px] font-black px-1.5 py-0.5 bg-white/10 rounded uppercase tracking-widest">ACTIVE</span></div></div>
+                    <div className="flex flex-col"><span className="text-[9px] font-black uppercase tracking-widest opacity-30 mb-1">{t.currentPrediction}</span><div className="flex items-center gap-2"><span className="text-sm font-bold tracking-tight">#{historicalPredictions.length + 1}</span><span className="text-[8px] font-black px-1.5 py-0.5 bg-white/10 rounded uppercase tracking-widest">ACTIVE</span></div></div>
                     <div className="flex flex-col items-end"><span className="text-[9px] font-black uppercase tracking-widest opacity-30 mb-1">NETWORK</span><span className="text-[10px] font-black text-emerald-400 border border-emerald-400/20 px-2 py-0.5 rounded-lg bg-emerald-400/5">MERLIN CHAIN</span></div>
                   </div>
                 </div>
@@ -999,31 +1000,31 @@ export default function App() {
         </div>
 
         <div className="lg:col-span-7 space-y-8">
-          <Card title={t.historicalLotteries} subtitle={t.historicalSub}>
-            {historicalLotteries.length === 0 ? (
+          <Card title={t.historicalPredictions} subtitle={t.historicalSub}>
+            {historicalPredictions.length === 0 ? (
               <div className="py-12 text-center border-2 border-dashed rounded-[2rem] border-gray-50 bg-gray-50/20">
                 <p className="text-sm text-gray-400 font-bold uppercase tracking-wider mb-2">{t.noHistory}</p>
                 <p className="text-[10px] text-gray-300 font-medium px-8">{t.historyAuto}</p>
               </div>
             ) : (
               <div className="space-y-4">
-                {historicalLotteries.map((lottery) => (
-                  <div key={lottery.id} className="p-5 rounded-2xl border border-emerald-50 bg-emerald-50/10 flex flex-col md:flex-row items-center justify-between gap-6 hover:bg-emerald-50/20 transition-all">
+                {historicalPredictions.map((prediction) => (
+                  <div key={prediction.id} className="p-5 rounded-2xl border border-emerald-50 bg-emerald-50/10 flex flex-col md:flex-row items-center justify-between gap-6 hover:bg-emerald-50/20 transition-all">
                     <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-xl bg-[#063A30] text-white flex items-center justify-center font-black text-xs">#{lottery.id.slice(-2)}</div>
+                      <div className="h-10 w-10 rounded-xl bg-[#063A30] text-white flex items-center justify-center font-black text-xs">#{prediction.id.slice(-2)}</div>
                       <div>
-                        <div className="text-xs font-black text-[#063A30]">{formatDate(lottery.date)}</div>
-                        <div className="text-[10px] font-bold text-emerald-800/40 uppercase tracking-widest">{formatTime(lottery.date)}</div>
+                        <div className="text-xs font-black text-[#063A30]">{formatDate(prediction.date)}</div>
+                        <div className="text-[10px] font-bold text-emerald-800/40 uppercase tracking-widest">{formatTime(prediction.date)}</div>
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      {lottery.numbers.map((n, i) => (
+                      {prediction.numbers.map((n, i) => (
                         <div key={i} className="h-10 w-10 rounded-full border-2 border-emerald-100 bg-white text-emerald-900 flex items-center justify-center font-black text-sm shadow-sm">{n}</div>
                       ))}
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-black text-emerald-900">{lottery.jackpot} M-USDT</div>
-                      <div className="text-[10px] font-bold text-emerald-800/40 uppercase tracking-widest">{lottery.winners} WINNERS</div>
+                      <div className="text-sm font-black text-emerald-900">{prediction.jackpot} M-USDT</div>
+                      <div className="text-[10px] font-bold text-emerald-800/40 uppercase tracking-widest">{prediction.winners} WINNERS</div>
                     </div>
                   </div>
                 ))}
@@ -1034,7 +1035,7 @@ export default function App() {
 
         <div className="lg:col-span-5 space-y-8">
           <Card title={t.createNew}>
-            <div className="mb-8"><label className="text-[10px] font-black uppercase text-emerald-900/40 mb-4 block tracking-widest">{t.selectLottery}</label><div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">{lotterySlots.map(ts => (<button key={ts} onClick={() => setSelectedLotteryTime(ts)} className={`flex-shrink-0 p-3 rounded-2xl border-2 transition-all flex flex-col items-center min-w-[100px] ${selectedLotteryTime === ts ? "bg-[#063A30] text-white border-[#063A30] shadow-lg" : "bg-white text-emerald-900 border-emerald-50 hover:border-emerald-100"}`}><span className="text-[10px] font-black uppercase tracking-widest opacity-60 leading-none mb-1">{formatDate(ts)}</span><span className="text-xs font-bold">{formatTime(ts)}</span></button>))}</div></div>
+            <div className="mb-8"><label className="text-[10px] font-black uppercase text-emerald-900/40 mb-4 block tracking-widest">{t.selectPrediction}</label><div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">{predictionSlots.map(ts => (<button key={ts} onClick={() => setSelectedPredictionTime(ts)} className={`flex-shrink-0 p-3 rounded-2xl border-2 transition-all flex flex-col items-center min-w-[100px] ${selectedPredictionTime === ts ? "bg-[#063A30] text-white border-[#063A30] shadow-lg" : "bg-white text-emerald-900 border-emerald-50 hover:border-emerald-100"}`}><span className="text-[10px] font-black uppercase tracking-widest opacity-60 leading-none mb-1">{formatDate(ts)}</span><span className="text-xs font-bold">{formatTime(ts)}</span></button>))}</div></div>
             <div className="mb-8"><label className="text-[10px] font-black uppercase text-emerald-900/40 mb-4 block tracking-widest">{t.batchMint}</label><div className="grid grid-cols-3 gap-3">{[1, 5, 10].map(q => (<button key={q} onClick={() => setMintQuantity(q)} className={`py-3 rounded-xl border-2 font-black transition-all ${mintQuantity === q ? "bg-[#063A30] text-white border-[#063A30]" : "bg-emerald-50/50 border-emerald-50 text-emerald-900"}`}>{q}x</button>))}</div></div>
             <div className="mb-8"><label className="text-[10px] font-black uppercase text-emerald-900/40 mb-4 block tracking-widest">{t.selectNums}</label><div className="grid grid-cols-3 gap-3">{Array.from({ length: 9 }, (_, i) => i + 1).map(n => (<button key={n} onClick={() => toggleNumber(n)} className={`h-14 rounded-2xl flex items-center justify-center text-xl font-black transition-all border-2 ${selectedNumbers.includes(n) ? "bg-[#063A30] text-white border-[#063A30] shadow-xl" : "bg-white text-emerald-900 border-emerald-50 hover:border-emerald-200"}`}>{n}</button>))}</div></div>
             <div className="grid grid-cols-2 gap-3 mb-8"><button onClick={handleRandomize} className="py-3 px-4 bg-emerald-50 text-emerald-800 rounded-xl font-bold text-xs uppercase tracking-wider border border-emerald-100">{t.shuffle}</button><button onClick={handleAiLucky} disabled={aiLoading} className="py-3 px-4 bg-indigo-50 text-indigo-800 rounded-xl font-bold text-xs uppercase tracking-wider border border-indigo-100 flex items-center justify-center gap-2">{aiLoading ? <div className="animate-spin h-3 w-3 border-2 border-indigo-800 border-t-transparent rounded-full" /> : <ICONS.Sparkles />}{t.aiLucky}</button></div>
@@ -1042,7 +1043,7 @@ export default function App() {
               <div className="flex justify-between items-center mb-6"><span className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em]">{t.gasCost}</span><span className="text-xl font-black text-emerald-900">{(1.0 * mintQuantity).toFixed(2)} M-USDT</span></div>
               {/* Fix: use explicit string comparisons to prevent TypeScript from incorrectly narrowing the status union within the complex JSX structure */}
               {txStatus !== 'idle' && (<div className={`mb-6 p-4 rounded-2xl border text-xs font-bold animate-in fade-in slide-in-from-bottom-2 ${String(txStatus) === 'awaiting' ? 'bg-amber-50 border-amber-100 text-amber-700' : String(txStatus) === 'mining' ? 'bg-blue-50 border-blue-100 text-blue-700' : String(txStatus) === 'success' ? 'bg-emerald-100 border-emerald-200 text-emerald-800' : 'bg-red-50 border-red-100 text-red-700'}`}><div className="flex items-center gap-3">{(String(txStatus) === 'awaiting' || String(txStatus) === 'mining') && <div className="animate-spin h-3 w-3 border-2 border-current border-t-transparent rounded-full" />}{String(txStatus) === 'success' && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}{String(txStatus) === 'error' && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>}<span>{String(txStatus) === 'awaiting' ? t.metamaskPrompt : String(txStatus) === 'mining' ? t.processing : String(txStatus) === 'success' ? t.successMsg : t.errorMsg}</span></div></div>)}
-              <PrimaryButton onClick={purchaseTicket} loading={txStatus === 'mining' || txStatus === 'awaiting'} variant={!account ? 'default' : (!isCorrectChain ? 'warning' : 'default')} disabled={selectedNumbers.length !== LOTTERY_CONFIG.numberCount || txStatus === 'mining' || txStatus === 'awaiting'}>{!account ? t.connectToBuy : (!isCorrectChain ? t.switch : (txStatus === 'awaiting' ? t.awaiting : `${t.buyTicket} (${mintQuantity}x)`))}</PrimaryButton>
+              <PrimaryButton onClick={purchaseTicket} loading={txStatus === 'mining' || txStatus === 'awaiting'} variant={!account ? 'default' : (!isCorrectChain ? 'warning' : 'default')} disabled={selectedNumbers.length !== PREDICTION_CONFIG.numberCount || txStatus === 'mining' || txStatus === 'awaiting'}>{!account ? t.connectToBuy : (!isCorrectChain ? t.switch : (txStatus === 'awaiting' ? t.awaiting : `${t.buyTicket} (${mintQuantity}x)`))}</PrimaryButton>
               {!isCorrectChain && account && (<p className="mt-4 text-[10px] text-center text-red-700 font-bold uppercase tracking-widest animate-pulse">{t.wrongNetwork}: {t.switch}</p>)}
               <p className="mt-4 text-[10px] text-center text-emerald-900/40 font-bold uppercase tracking-widest">{t.gasPrompt}</p>
             </div>
@@ -1101,13 +1102,13 @@ function TicketCard({ ticket, onClaim, lang, t, claimStatus }: any) {
             <span className="text-xs font-bold text-emerald-900 leading-none">#{ticket.id.slice(0, 10)}</span>
           </div>
           <div className="flex flex-col items-end">
-            <span className="text-[9px] font-black text-emerald-800/30 uppercase tracking-tighter leading-none mb-1">{t.lotteryIdLabel}</span>
+            <span className="text-[9px] font-black text-emerald-800/30 uppercase tracking-tighter leading-none mb-1">{t.predictionIdLabel}</span>
             <span className="text-xs font-bold text-emerald-900 leading-none">{(ticket.targetLottery / 100000000).toFixed(0)}</span>
           </div>
         </div>
 
         <div className="mb-6">
-           <div className="text-[9px] font-black text-emerald-800/30 uppercase tracking-tighter mb-2">{t.targetLottery}</div>
+           <div className="text-[9px] font-black text-emerald-800/30 uppercase tracking-tighter mb-2">{t.targetPrediction}</div>
            <div className="flex items-center gap-3 p-3 rounded-2xl bg-gray-50 border border-gray-100">
               <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center text-emerald-700 shadow-sm border border-gray-50">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
