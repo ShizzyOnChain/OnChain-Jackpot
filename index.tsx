@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import ReactDOM from "react-dom/client";
 import { MERLIN_NETWORK } from "./constants";
@@ -46,7 +45,7 @@ const Logo: React.FC<{ size?: number; opacity?: number }> = ({ size = 52, opacit
   return (
     <svg width={size} height={size} viewBox="0 0 120 120" fill="none" style={{ opacity }}>
       <defs>
-        {/* Fix: changed duplicate x2 attribute to y2 */}
+        {/* Fix: Changed second x2="100%" to y2="100%" to avoid duplicate attribute error */}
         <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#f7e1a0" /><stop offset="30%" stopColor="#d4af37" /><stop offset="70%" stopColor="#b8860b" /><stop offset="100%" stopColor="#8b6508" />
         </linearGradient>
@@ -124,7 +123,6 @@ function App() {
   const [chainId, setChainId] = useState<string | null>(null);
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
   
-  // RESET FOR DEPLOYMENT
   const [jackpot, setJackpot] = useState(0.00);
   const [referralBalance, setReferralBalance] = useState({ total: 0.00, available: 0.00 });
   
@@ -191,14 +189,14 @@ function App() {
       step1Title: "连接并切换", step1Desc: "连接您的钱包并切换到 MerlinChain 测试网。",
       step2Title: "选择号码", step2Desc: "在 1-9 之间选择 4 个数字。这些将编码到您的 NFT 元数据中。",
       step3Title: "铸造投注", step3Desc: "确认交易以在链上铸造您唯一的 NFT 彩票。价格：1 M-USDT + Gas。",
-      step4Title: "Claim the Jackpot", step4Desc: "如果您的 NFT 号码与每日开奖完全匹配，即可领取奖池奖金！",
+      step4Title: "领取大奖", step4Desc: "如果您的 NFT 号码与每日开奖完全匹配，即可领取奖池奖金！",
       rules: "彩票规则", rule1: "每 12 小时进行一次开奖 (00:00 & 12:00 UTC)。",
       rule2: "开奖使用确定的链上随机熵，确保公平性。",
       rule3: "奖池由该特定开奖时段的所有中奖者平分。",
       rule4: "成功铸造后，推荐费 (0.02 M-USDT) 将立即支付。",
       disclaimer: "法律声明", disclaimerText: "OnChain Jackpot 是一款实验性的几率游戏。参与彩票涉及财务风险。",
       available: "可领取金额", claimAll: "领取所有奖励", editProfile: "编辑资料",
-      uploadAvatar: "上传图片", bioLabel: "Bio / Motto", nameLabel: "显示名称"
+      uploadAvatar: "上传图片", bioLabel: "个人简介", nameLabel: "显示名称"
     }
   };
 
@@ -223,21 +221,29 @@ function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // Set up Ethereum listeners
-  useEffect(() => {
-    const checkConn = async () => {
-      if (window.ethereum) {
+  // Robust connection logic
+  const checkConnection = useCallback(async () => {
+    if (window.ethereum) {
+      try {
         const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        if (accounts.length > 0) setAccount(accounts[0]);
-        const cid = await window.ethereum.request({ method: 'eth_chainId' });
-        setChainId(cid);
-
-        window.ethereum.on('chainChanged', (cid: string) => setChainId(cid));
-        window.ethereum.on('accountsChanged', (accs: string[]) => setAccount(accs[0] || null));
+        if (accounts.length > 0) {
+          setAccount(accounts[0]);
+          const cid = await window.ethereum.request({ method: 'eth_chainId' });
+          setChainId(cid);
+        }
+      } catch (e) {
+        console.error("Connection check failed", e);
       }
-    };
-    checkConn();
+    }
   }, []);
+
+  useEffect(() => {
+    checkConnection();
+    if (window.ethereum) {
+      window.ethereum.on('chainChanged', (cid: string) => setChainId(cid));
+      window.ethereum.on('accountsChanged', (accs: string[]) => setAccount(accs[0] || null));
+    }
+  }, [checkConnection]);
 
   const isCorrectChain = useMemo(() => {
     if (!chainId) return false;
@@ -381,6 +387,10 @@ function App() {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+         alert("Image too large. Please select a file under 2MB.");
+         return;
+      }
       const reader = new FileReader();
       reader.onloadend = () => {
         setProfile(prev => ({ ...prev, avatarUrl: reader.result as string }));
@@ -431,7 +441,7 @@ function App() {
           {account ? (
             <button onClick={() => setShowProfileModal(true)} className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-emerald-100 dark:border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/5 text-emerald-800 dark:text-emerald-100 font-bold text-xs shadow-sm transition-all hover:bg-emerald-100 dark:hover:bg-emerald-500/10">
               <img src={profile.avatarUrl} alt="Avatar" className="h-6 w-6 rounded-full object-cover border border-emerald-200" />
-              <span className="hidden lg:inline max-w-[80px] truncate">{profile.username}</span>
+              <span className="hidden lg:inline max-w-[80px] truncate">{profile.username || "Player"}</span>
             </button>
           ) : (
             <button 
@@ -565,7 +575,7 @@ function App() {
                 <div className="relative group">
                   <img src={profile.avatarUrl} alt="Profile" className="h-32 w-32 rounded-full border-4 border-emerald-100 dark:border-emerald-500/20 shadow-lg object-cover" />
                   {isEditingProfile && (
-                    <button onClick={() => fileInputRef.current?.click()} className="absolute inset-0 bg-black/40 rounded-full flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200">
+                    <button onClick={() => fileInputRef.current?.click()} className="absolute inset-0 bg-black/40 rounded-full flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-pointer">
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mb-1"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                       <span className="text-[9px] font-black text-white uppercase tracking-wider">{t.uploadAvatar}</span>
                     </button>
@@ -578,10 +588,10 @@ function App() {
                 </div>
               </div>
               <div className="flex flex-col gap-2 min-w-[150px]">
-                <PrimaryButton onClick={() => { if(isEditingProfile) saveProfile(); setIsEditingProfile(!isEditingProfile); }} variant={isEditingProfile ? "success" : "outline"}>
+                <PrimaryButton onClick={() => { if(isEditingProfile) saveProfile(); else setIsEditingProfile(true); }} variant={isEditingProfile ? "success" : "outline"}>
                   {isEditingProfile ? t.save : t.editProfile}
                 </PrimaryButton>
-                <PrimaryButton onClick={() => setAccount(null)} variant="warning">{t.logout}</PrimaryButton>
+                <PrimaryButton onClick={() => { setAccount(null); setShowProfileModal(false); }} variant="warning">{t.logout}</PrimaryButton>
               </div>
             </div>
             {account && (
@@ -595,7 +605,7 @@ function App() {
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-emerald-800/40 block mb-2">{t.bioLabel}</label>
-                        <textarea className="w-full bg-white dark:bg-[#04211C] border border-emerald-100 dark:border-emerald-500/10 rounded-xl px-4 py-3 font-medium h-24 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none" value={profile.bio} onChange={e => setProfile({...profile, bio: e.target.value})} />
+                        <textarea className="w-full bg-white dark:bg-[#04211C] border border-emerald-100 dark:border-emerald-500/10 rounded-xl px-4 py-3 font-medium h-24 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none resize-none" value={profile.bio} onChange={e => setProfile({...profile, bio: e.target.value})} />
                       </div>
                     </div>
                     <div>
