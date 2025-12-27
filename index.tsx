@@ -13,6 +13,8 @@ const PRELOADED_AVATARS = [
   "https://api.dicebear.com/7.x/lorelei/svg?seed=Jasper"
 ];
 
+const COINGECKO_API_URL = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd";
+
 // --- UTILS ---
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
@@ -125,6 +127,7 @@ function App() {
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
   
   const [jackpot, setJackpot] = useState(0.00);
+  const [btcPrice, setBtcPrice] = useState<number | null>(null);
   const [referralBalance, setReferralBalance] = useState({ total: 0.00, available: 0.00 });
   
   const [now, setNow] = useState(new Date());
@@ -236,6 +239,25 @@ function App() {
     }
   }, []);
 
+  const fetchBtcPrice = async () => {
+    try {
+      const response = await fetch(COINGECKO_API_URL);
+      const data = await response.json();
+      if (data.bitcoin && data.bitcoin.usd) {
+        setBtcPrice(data.bitcoin.usd);
+      }
+    } catch (error) {
+      console.error("Failed to fetch BTC price:", error);
+      setBtcPrice(null); // Fallback
+    }
+  };
+
+  useEffect(() => {
+    fetchBtcPrice();
+    const priceInterval = setInterval(fetchBtcPrice, 60000); // Fetch every minute
+    return () => clearInterval(priceInterval);
+  }, []);
+
   const isCorrectChain = useMemo(() => {
     if (!chainId) return false;
     const hexId = chainId.startsWith('0x') ? chainId.toLowerCase() : `0x${parseInt(chainId).toString(16)}`;
@@ -259,12 +281,10 @@ function App() {
               setTickets(formattedTickets.sort((a, b) => b.slot - a.slot));
           } catch (error) {
               console.error("Error fetching contract data:", error);
-              // Fallback to empty state on error
               setJackpot(0);
               setTickets([]);
           }
       } else {
-          // Clear data if not connected correctly
           setJackpot(0);
           setTickets([]);
       }
@@ -281,7 +301,7 @@ function App() {
   }, [fetchContractData, contract, account]);
 
 
-  const checkConnection = useCallback(async () => {
+  const checkConnection = useCallback(async (isUserAction = false) => {
     if (window.ethereum) {
       try {
         const accounts = await window.ethereum.request({ method: 'eth_accounts' });
@@ -289,6 +309,14 @@ function App() {
           setAccount(accounts[0]);
           const cid = await window.ethereum.request({ method: 'eth_chainId' });
           setChainId(cid);
+        } else if (isUserAction) {
+          // If no accounts are found and it's a user action, request them.
+          const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
+           if (accs.length > 0) {
+            setAccount(accs[0]);
+            const cid = await window.ethereum.request({ method: 'eth_chainId' });
+            setChainId(cid);
+           }
         }
       } catch (e) {
         console.error("Connection check failed", e);
@@ -297,7 +325,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    checkConnection();
+    checkConnection(false); // Initial passive check
     if (window.ethereum) {
       window.ethereum.on('chainChanged', (cid: string) => setChainId(cid));
       window.ethereum.on('accountsChanged', (accs: string[]) => setAccount(accs[0] || null));
@@ -375,6 +403,7 @@ function App() {
     if (window.ethereum) {
       try {
         setIsConnecting(true);
+        // This is now the primary method to trigger the wallet connection prompt.
         const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
         
         if (accs.length > 0) {
@@ -416,7 +445,6 @@ function App() {
         const signer = await provider.getSigner();
         const contractWithSigner = contract.connect(signer) as ethers.Contract;
         
-        // Assuming ticket price is 0.0001 BTC for Merlin Testnet
         const ticketPrice = ethers.parseUnits("0.0001", "ether"); 
 
         const tx = await contractWithSigner.mintTicket(
@@ -571,7 +599,7 @@ function App() {
         </div>
         <div className="flex items-center gap-2 md:gap-4">
           {account && !isCorrectChain && (
-            <button onClick={switchNetwork} className="px-3 py-1.5 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 rounded-xl text-[10px] font-black uppercase tracking-wider animate-pulse transition-all">{t.switchToTestnet}</button>
+            <button onClick={switchNetwork} className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all hover:bg-indigo-100 dark:hover:bg-indigo-500/20">{t.switchToTestnet}</button>
           )}
           <button onClick={() => setShowResultsModal(true)} className="px-3 py-1.5 border border-[#7FE6C3] dark:border-emerald-500/30 rounded-xl text-[9px] md:text-[11px] font-black uppercase tracking-wider text-[#04211C] dark:text-white transition-all hover:bg-emerald-50 dark:hover:bg-emerald-500/10">{t.viewResults}</button>
           <button onClick={() => setShowGuideModal(true)} className="hidden sm:block px-3 py-1.5 border border-[#7FE6C3] dark:border-emerald-500/30 rounded-xl text-[9px] md:text-[11px] font-black uppercase tracking-wider text-[#04211C] dark:text-white transition-all hover:bg-emerald-50 dark:hover:bg-emerald-500/10">{t.howItWorks}</button>
@@ -608,7 +636,12 @@ function App() {
           <div className="w-full lg:w-[480px]">
             <div className="relative bg-[#04211C] dark:bg-black rounded-[3rem] p-12 text-white shadow-2xl border border-emerald-500/20 overflow-hidden">
               <span className="text-[13px] font-black text-emerald-400 uppercase tracking-[0.4em]">{t.jackpotLabel}</span>
-              <div className="flex items-baseline gap-4 mt-1"><span className="text-7xl md:text-8xl font-black font-display tracking-tighter text-white">{jackpot.toFixed(2)}</span><span className="text-xl font-black text-emerald-400">BTC</span></div>
+              <div className="flex items-baseline gap-4 mt-1"><span className="text-7xl md:text-8xl font-black font-display tracking-tighter text-white">{jackpot.toFixed(4)}</span><span className="text-xl font-black text-emerald-400">BTC</span></div>
+               {btcPrice && (
+                  <p className="text-lg font-medium text-emerald-400/60 mt-2">
+                    (${(jackpot * btcPrice).toLocaleString('en-US', { style: 'currency', currency: 'USD' })})
+                  </p>
+                )}
             </div>
           </div>
         </section>
