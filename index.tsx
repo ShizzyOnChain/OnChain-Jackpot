@@ -669,4 +669,119 @@ function App() {
             <div className="relative flex flex-col items-center justify-center text-center bg-gradient-to-br from-[#111] to-black rounded-[3rem] p-8 md:p-12 text-white shadow-2xl border border-white/10 overflow-hidden h-full">
                 <div className="absolute -inset-24 bg-emerald-500/10 [mask-image:radial-gradient(ellipse_at_center,black,transparent_60%)] blur-3xl opacity-60"></div>
                 <div className="h-16 w-16 mb-4 opacity-80">
-                  <svg width="64" height="64" viewBox="0 0 80 100" fill="none" xmlns="http://www.w3
+                  <svg width="64" height="64" viewBox="0 0 80 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g fill="#0D6B58">
+                      <polygon points="62,20 51,39.05 29,39.05 18,20 29,0.95 51,0.95"/>
+                      <polygon points="62,80 51,99.05 29,99.05 18,80 29,60.95 51,60.95"/>
+                      <polygon points="44.68,50 33.68,69.05 11.68,69.05 0.68,50 11.68,30.95 33.68,30.95"/>
+                      <polygon points="79.32,50 68.32,69.05 46.32,69.05 35.32,50 46.32,30.95 68.32,30.95"/>
+                    </g>
+                    <g fill="#D4AF37">
+                      <polygon points="60,20 50,37.32 30,37.32 20,20 30,2.68 50,2.68"/>
+                      <polygon points="60,80 50,97.32 30,97.32 20,80 30,62.68 50,62.68"/>
+                      <polygon points="42.68,50 32.68,67.32 12.68,67.32 2.68,50 12.68,32.68 32.68,32.68"/>
+                      <polygon points="77.32,50 67.32,67.32 47.32,67.32 37.32,50 47.32,32.68 67.32,32.68"/>
+                    </g>
+                    <g fill="none" stroke="#F9D77E" strokeWidth="1.5">
+                      <polygon points="58,20 49,35.59 31,35.59 22,20 31,4.41 49,4.41"/>
+                      <polygon points="58,80 49,95.59 31,95.59 22,80 31,64.41 49,64.41"/>
+                      <polygon points="40.68,50 31.68,65.59 13.68,65.59 4.68,50 13.68,34.41 31.68,34.41"/>
+                      <polygon points="75.32,50 66.32,65.59 48.32,65.59 39.32,50 48.32,34.41 66.32,34.41"/>
+                    </g>
+                  </svg>
+                </div>
+                <p className="text-[10px] font-black text-emerald-300 uppercase tracking-widest">{t.jackpotLabel}</p>
+                <h3 className="text-4xl md:text-5xl font-black font-display tracking-tighter text-white my-2">{jackpot.toFixed(4)} <span className="text-3xl opacity-60">BTC</span></h3>
+                {btcPrice && <p className="text-sm font-medium text-white/60">(${(jackpot * btcPrice).toLocaleString('en-US', { style: 'currency', currency: 'USD' })})</p>}
+            </div>
+          </div>
+        </section>
+
+        <section className="grid grid-cols-1 lg:grid-cols-10 gap-8 mt-8">
+          <div className="lg:col-span-6 bg-white dark:bg-[#04211C] rounded-[2rem] border border-gray-100 dark:border-emerald-500/10 p-8 shadow-2xl">
+              <h3 className="text-2xl font-black font-display text-[#04211C] dark:text-white">{t.mintTitle}</h3>
+              <div className="mt-8">
+                  <label className="text-xs font-black uppercase tracking-widest text-black/60 dark:text-white/60 mb-3 block">{t.selectSchedule}</label>
+                  {predictionSlots.length > 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                          {predictionSlots.slice(0, 8).map(ts => (
+                              <button key={ts} onClick={() => setSelectedPredictionSlot(ts)} className={`px-4 py-3 rounded-xl text-xs font-bold transition-all border ${selectedPredictionSlot === ts ? 'bg-emerald-500 text-white border-emerald-500 shadow-md' : 'bg-gray-50 dark:bg-emerald-500/5 border-gray-200 dark:border-emerald-500/10 hover:bg-gray-100 dark:hover:bg-emerald-500/10 text-emerald-800 dark:text-emerald-300'}`}>
+                                  <span className="block">{formatDate(ts)}</span>
+                                  <span className="opacity-70">{formatTime(ts)}</span>
+                              </button>
+                          ))}
+                      </div>
+                  ) : (
+                    <div className="text-center p-4 rounded-xl bg-gray-50 dark:bg-emerald-500/5 border border-gray-100 dark:border-emerald-500/10 text-sm text-gray-500 dark:text-gray-400">{t.noDrawsAvailable}</div>
+                  )}
+              </div>
+              <div className="mt-8">
+                  <div className="flex justify-between items-center mb-3">
+                      <label className="text-xs font-black uppercase tracking-widest text-black/60 dark:text-white/60">{t.select4}</label>
+                      <div className="flex gap-2">
+                        <button onClick={handleRandomize} className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline">{t.randomize}</button>
+                        <button onClick={() => setSelectedNumbers([])} className="text-xs font-bold text-red-500 hover:underline">{t.clear}</button>
+                      </div>
+                  </div>
+                  <div className="grid grid-cols-10 gap-1.5">
+                      {Array.from({ length: 99 }, (_, i) => i + 1).map(num => (
+                          <button key={num} onClick={() => setSelectedNumbers(prev => prev.includes(num) ? prev.filter(n => n !== num) : (prev.length < 4 ? [...prev, num].sort((a,b)=>a-b) : prev))} className={`h-10 w-full rounded-lg text-sm font-bold transition-all border ${selectedNumbers.includes(num) ? 'bg-emerald-500 text-white border-emerald-500 shadow-md scale-105' : 'bg-gray-50 dark:bg-emerald-500/5 hover:bg-gray-100 dark:hover:bg-emerald-500/10 border-gray-200 dark:border-emerald-500/10 text-emerald-800 dark:text-emerald-300'}`}>{num}</button>
+                      ))}
+                  </div>
+              </div>
+          </div>
+          <div className="lg:col-span-4">
+              <TicketPreview t={t} numbers={selectedNumbers} timestamp={selectedPredictionSlot} formatDate={formatDate} formatTime={formatTime} />
+              <div className="bg-gray-50 dark:bg-emerald-500/5 border border-gray-100 dark:border-emerald-500/10 rounded-2xl p-4 flex items-center justify-between">
+                  <span className="text-xs font-black uppercase tracking-widest text-emerald-900/40 dark:text-white/30">{t.totalPrice}</span>
+                  <div className="text-right">
+                    <p className="font-bold text-lg text-emerald-800 dark:text-white">{ticketPrice.toFixed(4)} BTC</p>
+                    <p className="text-[10px] text-emerald-900/40 dark:text-white/30 font-bold">{t.gasFeesNote}</p>
+                  </div>
+              </div>
+              <div className="mt-4">
+                <PrimaryButton onClick={handleMint} disabled={selectedNumbers.length !== 4 || txStatus !== 'idle' || !selectedPredictionSlot} loading={txStatus === 'awaiting' || txStatus === 'mining'}>
+                    {txStatus === 'success' ? 'Success!' : txStatus === 'error' ? 'Error!' : t.purchase}
+                </PrimaryButton>
+              </div>
+          </div>
+        </section>
+      </main>
+
+      <Suspense fallback={<div />}>
+        {showProfileModal && <ProfileModal 
+            isOpen={showProfileModal}
+            onClose={() => setShowProfileModal(false)}
+            t={t}
+            profile={profile}
+            setProfile={setProfile}
+            account={account!}
+            referralBalance={referralBalance}
+            btcPrice={btcPrice}
+            onClaimReferral={handleClaimReferral}
+            isClaimingReferral={isClaimingReferral}
+            onLogout={disconnectWallet}
+            tickets={tickets}
+            TicketCardComponent={TicketCard}
+            previousDraws={previousDraws}
+            handleClaim={handleClaim}
+            claimStatus={claimStatus}
+            formatDate={formatDate}
+            formatTime={formatTime}
+        />}
+        {showResultsModal && <ResultsModal t={t} onClose={() => setShowResultsModal(false)} previousDraws={previousDraws} />}
+        {showGuideModal && <GuideModal t={t} onClose={() => setShowGuideModal(false)} />}
+      </Suspense>
+    </div>
+  );
+}
+
+const rootElement = document.getElementById('root');
+if (!rootElement) throw new Error('Failed to find the root element');
+
+const root = ReactDOM.createRoot(rootElement);
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
