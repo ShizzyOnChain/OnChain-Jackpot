@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "A premium twice-daily lottery on the blockchain.",
   "scripts": {
-    "build": "echo 'Build step not required, files are served statically.'",
+    "build": "esbuild index.tsx --bundle --outfile=dist/main.js --jsx=automatic && cp index.html dist/index.html",
     "keeper": "ts-node scripts/settle.ts",
     "deploy": "ts-node scripts/deploy.ts"
   },
@@ -17,6 +17,7 @@
   "devDependencies": {
     "dotenv": "^16.4.5",
     "ts-node": "^10.9.2",
-    "typescript": "^5.5.3"
+    "typescript": "^5.5.3",
+    "esbuild": "^0.23.0"
   }
 }
