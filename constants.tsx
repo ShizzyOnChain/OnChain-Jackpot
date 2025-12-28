@@ -12,8 +12,8 @@ export const COLORS = {
 };
 
 export const MERLIN_NETWORK = {
-  chainId: '0x6b4f', 
-  chainName: 'Merlin Testnet',
+  chainId: '0xa7b44', // 686868
+  chainName: 'MerlinChain',
   nativeCurrency: {
     name: 'BTC',
     symbol: 'BTC',

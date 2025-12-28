@@ -1,20 +1,54 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Onchain Daily Jackpot
 
-# Run and deploy your AI Studio app
+This project contains the frontend application and backend management scripts for the Onchain Daily Jackpot smart contract on MerlinChain.
 
-This contains everything you need to run your app locally.
+## Project Structure
 
-View your app in AI Studio: https://ai.studio/apps/drive/1xa-xCSnN-jWXRWs03b6TAVrgVNPWJ_Ho
+- `/index.html`: The main entry point for the web application.
+- `/index.tsx`: The core React application logic and UI.
+- `/constants.tsx`: Shared constants like the contract address, ABI, and network details.
+- `/scripts/`: Contains Node.js scripts for managing the smart contract.
+  - `deploy.ts`: Script to deploy a new version of the contract.
+  - `settle.ts`: The automated "Keeper" script that continuously settles draws.
 
-## Run Locally
+---
 
-**Prerequisites:**  Node.js
+## Owner Quick Start: Automating Draws
 
+To fully automate the settlement process, you will run the Keeper script. This script runs forever, checking every minute to see if a draw needs to be settled.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### 1. First-Time Setup
+
+You only need to do this once.
+
+**A. Create Environment File**
+
+Create a new file named `.env` in the root of the project. Copy the contents of `.env.example` into it and add your wallet's private key.
+
+```
+# .env
+MERLIN_RPC_URL="https://testnet-rpc.merlinchain.io"
+PRIVATE_KEY="YOUR_WALLET_PRIVATE_KEY_HERE"
+```
+
+**WARNING:** Never share your `.env` file or commit it to version control. It contains sensitive information.
+
+**B. Install Dependencies**
+
+Open your terminal in the project directory and run:
+
+```bash
+npm install
+```
+
+### 2. Start the Automation Keeper
+
+To start the automated process, run the following command in your terminal:
+
+```bash
+npm run keeper
+```
+
+The script will now run continuously.
+
+**IMPORTANT:** For the automation to work, this script must be left running 24/7. You should run this command in a terminal on a server or a computer that is always on and connected to the internet. For production use, consider tools like `pm2` or `screen` to manage the process.

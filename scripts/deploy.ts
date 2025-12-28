@@ -38,7 +38,7 @@ async function main() {
   // --- CONSTRUCTOR ARGUMENTS ---
   const initialOwner = wallet.address;
   const devWallet = wallet.address; 
-  const initialTicketPrice = ethers.parseEther("0.00001"); // Adjust as needed
+  const initialTicketPrice = ethers.parseEther("0.0001"); // Adjust as needed
   const initialReferralReward = ethers.parseEther("0.000001"); // Adjust as needed
   const jackpotBps = 8000; // 80%
   const devBps = 1000; // 10%
