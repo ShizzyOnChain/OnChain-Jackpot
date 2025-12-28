@@ -26,7 +26,7 @@ const getWinningNumbersForSlot = (timestamp: number): number[] => {
   let currentHash = hash;
   while (result.length < 4) {
     currentHash = (currentHash * 1664525 + 1013904223) | 0;
-    const num = (Math.abs(currentHash) % 99) + 1; // FIX: Changed from 9 to 99 to match game rules
+    const num = (Math.abs(currentHash) % 9) + 1;
     if (!result.includes(num)) result.push(num);
   }
   return result.sort((a, b) => a - b);

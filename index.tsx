@@ -141,7 +141,7 @@ function App() {
       title: "Onchain Jackpot", connect: "Connect", heroTitle: "Onchain Daily Prediction",
       heroSubtitle: "Verifiable jackpot settles twice daily at 00:00 & 12:00 UTC. Every entry is a unique ticket minted on MerlinChain.",
       mintTitle: "Mint New Entry", selectSchedule: "SELECT PREDICTION SCHEDULE",
-      select4: "SELECT 4 NUMBERS (1-99)", randomize: "Randomize", purchase: "Mint Ticket",
+      select4: "SELECT 4 NUMBERS (1-9)", randomize: "Randomize", purchase: "Mint Ticket",
       viewResults: "VIEW RESULTS", howItWorks: "HOW IT WORKS", countdownTitle: "Next Prediction Countdown", countdownSub: "00:00 & 12:00 UTC",
       myTickets: "My Entries", profile: "Profile", referral: "Referral & Rewards", logout: "Logout",
       save: "Save Changes", copyLink: "Copy Link", jackpotLabel: "JACKPOT", network: "MerlinChain",
@@ -151,7 +151,7 @@ function App() {
       referralBonus: "EARN ONCHAIN REWARDS FOR EVERY TICKET MINTED THROUGH YOUR LINK",
       footer: "Onchain Prediction • Powered by MerlinChain • Verifiable Assets",
       step1Title: "Connect & Switch", step1Desc: "Connect your wallet and switch to MerlinChain.",
-      step2Title: "Pick Your Numbers", step2Desc: "Select 4 numbers between 1-99. The order does not matter. These will be encoded into your ticket's on-chain data.",
+      step2Title: "Pick Your Numbers", step2Desc: "Select 4 numbers between 1-9. The order does not matter. These will be encoded into your ticket's on-chain data.",
       step3Title: "Mint Your Entry", step3Desc: "Confirm the transaction to mint your unique ticket. Price is set by the contract owner.",
       step4Title: "Claim the Jackpot", step4Desc: "If your ticket's numbers match the daily prediction exactly, you can claim your share of the jackpot prize pool!",
       rules: "Prediction Rules", rule1: "A prediction event occurs every 12 hours (00:00 & 12:00 UTC).",
@@ -191,7 +191,7 @@ function App() {
       title: "链上大奖", connect: "连接", heroTitle: "链上每日预测",
       heroSubtitle: "可验证奖池每日 00:00 和 12:00 UTC 定时结算。每一次投注都会在 MerlinChain 上铸造一张独一无二的票证。",
       mintTitle: "铸造新票证", selectSchedule: "选择开奖时间",
-      select4: "选择 4 个数字 (1-99)", randomize: "随机生成", purchase: "铸造票证",
+      select4: "选择 4 个数字 (1-9)", randomize: "随机生成", purchase: "铸造票证",
       viewResults: "查看结果", howItWorks: "运作方式", countdownTitle: "下次预测倒计时", countdownSub: "00:00 & 12:00 UTC",
       myTickets: "我的票证", profile: "个人中心", referral: "推荐奖励", logout: "断开连接",
       save: "保存修改", copyLink: "复制链接", jackpotLabel: "当前奖池", network: "MerlinChain",
@@ -201,7 +201,7 @@ function App() {
       referralBonus: "通过您的链接每铸造一张票证，均可赚取链上奖励",
       footer: "链上预测 • 由 MerlinChain 提供支持 • 可验证资产",
       step1Title: "连接并切换", step1Desc: "连接您的钱包并切换到 MerlinChain。",
-      step2Title: "选择号码", step2Desc: "在 1-99 之间选择 4 个数字。顺序无关紧要。这些将编码到您票证的链上数据中。",
+      step2Title: "选择号码", step2Desc: "在 1-9 之间选择 4 个数字。顺序无关紧要。这些将编码到您票证的链上数据中。",
       step3Title: "铸造投注", step3Desc: "确认交易以铸造您唯一的票证。价格由合约所有者设定。",
       step4Title: "领取大奖", step4Desc: "如果您的票证号码与每日预测完全匹配，即可领取奖池奖金份额！",
       rules: "预测规则", rule1: "每 12 小时进行一次预测 (00:00 & 12:00 UTC)。",
@@ -595,7 +595,7 @@ function App() {
   const handleRandomize = () => {
     const nums: number[] = [];
     while (nums.length < 4) {
-      const r = Math.floor(Math.random() * 99) + 1;
+      const r = Math.floor(Math.random() * 9) + 1;
       if (!nums.includes(r)) nums.push(r);
     }
     setSelectedNumbers(nums.sort((a, b) => a - b));
@@ -697,6 +697,20 @@ function App() {
           </div>
         </section>
 
+        <section className="mt-8 text-center">
+          <h3 className="text-sm font-black uppercase tracking-widest text-black dark:text-white">{t.countdownTitle}</h3>
+          <div className="flex justify-center items-center gap-4 md:gap-8 mt-4">
+            <TimeDisplay value={pad2(timeLeft.d)} label={t.days} />
+            <span className="text-4xl font-black font-display text-emerald-900/20 dark:text-white/20 -mt-3">:</span>
+            <TimeDisplay value={pad2(timeLeft.h)} label={t.hours} />
+            <span className="text-4xl font-black font-display text-emerald-900/20 dark:text-white/20 -mt-3">:</span>
+            <TimeDisplay value={pad2(timeLeft.m)} label={t.minutes} />
+            <span className="text-4xl font-black font-display text-emerald-900/20 dark:text-white/20 -mt-3">:</span>
+            <TimeDisplay value={pad2(timeLeft.s)} label={t.seconds} />
+          </div>
+          <p className="text-xs font-bold text-emerald-900/40 dark:text-white/30 mt-2">{t.countdownSub}</p>
+        </section>
+
         <section className="grid grid-cols-1 lg:grid-cols-10 gap-8 mt-8">
           <div className="lg:col-span-6 bg-white dark:bg-[#04211C] rounded-[2rem] border border-gray-100 dark:border-emerald-500/10 p-8 shadow-2xl">
               <h3 className="text-2xl font-black font-display text-[#04211C] dark:text-white">{t.mintTitle}</h3>
@@ -723,8 +737,8 @@ function App() {
                         <button onClick={() => setSelectedNumbers([])} className="text-xs font-bold text-red-500 hover:underline">{t.clear}</button>
                       </div>
                   </div>
-                  <div className="grid grid-cols-10 gap-1.5">
-                      {Array.from({ length: 99 }, (_, i) => i + 1).map(num => (
+                  <div className="grid grid-cols-9 gap-1.5">
+                      {Array.from({ length: 9 }, (_, i) => i + 1).map(num => (
                           <button key={num} onClick={() => setSelectedNumbers(prev => prev.includes(num) ? prev.filter(n => n !== num) : (prev.length < 4 ? [...prev, num].sort((a,b)=>a-b) : prev))} className={`h-10 w-full rounded-lg text-sm font-bold transition-all border ${selectedNumbers.includes(num) ? 'bg-emerald-500 text-white border-emerald-500 shadow-md scale-105' : 'bg-gray-50 dark:bg-emerald-500/5 hover:bg-gray-100 dark:hover:bg-emerald-500/10 border-gray-200 dark:border-emerald-500/10 text-emerald-800 dark:text-emerald-300'}`}>{num}</button>
                       ))}
                   </div>
