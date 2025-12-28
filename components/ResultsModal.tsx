@@ -2,25 +2,25 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Draw } from '../types';
 
 interface ResultsModalProps {
-    t: any; // Translation object
+    t: any;
     onClose: () => void;
     previousDraws: Record<string, Draw>;
 }
 
 const ResultsModal: React.FC<ResultsModalProps> = ({ t, onClose, previousDraws }) => {
-    const [livePredictionNumbers, setLivePredictionNumbers] = useState<(number | null)[]>([null, null, null, null]);
+    const [livePredictionNumbers, setLivePredictionNumbers] = useState<(number | null)[]>([null, null, null, null, null, null]);
     const [predictionPhase, setPredictionPhase] = useState(0);
 
     const runLivePredictionSequence = useCallback(async () => {
         setPredictionPhase(0);
-        setLivePredictionNumbers([null, null, null, null]);
+        setLivePredictionNumbers([null, null, null, null, null, null]);
 
         const lastDrawTime = Object.keys(previousDraws).map(Number).sort((a, b) => b - a)[0];
         if (!lastDrawTime) return;
 
         const finalNumbers = previousDraws[lastDrawTime].winningNumbers;
-        for (let i = 1; i <= 4; i++) {
-            await new Promise(r => setTimeout(r, 1200));
+        for (let i = 1; i <= 6; i++) {
+            await new Promise(r => setTimeout(r, 800));
             setLivePredictionNumbers(prev => {
                 const next = [...prev];
                 next[i - 1] = finalNumbers[i - 1];
@@ -29,7 +29,7 @@ const ResultsModal: React.FC<ResultsModalProps> = ({ t, onClose, previousDraws }
             setPredictionPhase(i);
         }
         await new Promise(r => setTimeout(r, 800));
-        setPredictionPhase(5);
+        setPredictionPhase(7);
     }, [previousDraws]);
 
     useEffect(() => {
@@ -45,10 +45,10 @@ const ResultsModal: React.FC<ResultsModalProps> = ({ t, onClose, previousDraws }
                 <h2 className="text-3xl font-black font-display text-[#04211C] dark:text-white mb-8">{t.latestResult}</h2>
                 {Object.keys(previousDraws).length > 0 ? (
                     <>
-                        <div className="flex justify-center gap-4 mb-12 h-24">
-                            {livePredictionNumbers.map((n, i) => (<div key={i} className={`h-20 w-20 rounded-full border-4 flex items-center justify-center transition-all duration-700 ${n !== null ? 'scale-110 border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 shadow-lg' : 'border-dashed border-emerald-100 dark:border-emerald-500/20'}`}><span className="font-black text-2xl dark:text-white">{n !== null ? n : '?'}</span></div>))}
+                        <div className="grid grid-cols-3 gap-4 mb-12 h-auto">
+                            {livePredictionNumbers.map((n, i) => (<div key={i} className={`h-16 w-full rounded-2xl border-4 flex items-center justify-center transition-all duration-700 ${n !== null ? 'scale-105 border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 shadow-lg' : 'border-dashed border-emerald-100 dark:border-emerald-500/20'}`}><span className="font-black text-2xl dark:text-white">{n !== null ? n : '?'}</span></div>))}
                         </div>
-                        <p className="text-[10px] font-black text-emerald-800/40 dark:text-white/30 uppercase tracking-widest">{predictionPhase < 4 ? t.verifyingOnchain : t.revealSuccess}</p>
+                        <p className="text-[10px] font-black text-emerald-800/40 dark:text-white/30 uppercase tracking-widest">{predictionPhase < 6 ? t.verifyingOnchain : t.revealSuccess}</p>
                     </>
                 ) : (
                     <div className="py-8">

@@ -12,14 +12,12 @@ import { Pill } from "./components/Pill";
 import { PrimaryButton } from "./components/PrimaryButton";
 import { TicketCard } from "./components/TicketCard";
 
-// FIX: Add type definition for window.ethereum to fix TypeScript errors.
 declare global {
   interface Window {
     ethereum: any;
   }
 }
 
-// --- CONSTANTS ---
 const PRELOADED_AVATARS = [
   "https://api.dicebear.com/7.x/lorelei/svg?seed=Felix",
   "https://api.dicebear.com/7.x/lorelei/svg?seed=Luna",
@@ -29,12 +27,9 @@ const PRELOADED_AVATARS = [
 ];
 
 const COINGECKO_API_URL = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd";
-const ONCHAIN_SEED_PHRASE = "onchain-jackpot-v3-merlin-stable";
 
-// --- UTILS ---
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
-// --- SUB-COMPONENTS ---
 const TimeDisplay = ({ value, label }: { value: string, label: string }) => (
   <div className="flex flex-col items-center">
     <div className="text-2xl md:text-4xl font-black font-display tracking-tighter text-[#04211C] dark:text-white">{value}</div>
@@ -44,7 +39,7 @@ const TimeDisplay = ({ value, label }: { value: string, label: string }) => (
 
 const TicketPreview = ({ t, numbers, timestamp, formatDate, formatTime }: any) => {
     const displayNumbers = [...numbers];
-    while (displayNumbers.length < 4) {
+    while (displayNumbers.length < 6) {
         displayNumbers.push(null);
     }
 
@@ -56,16 +51,16 @@ const TicketPreview = ({ t, numbers, timestamp, formatDate, formatTime }: any) =
                     <h3 className="font-bold font-display text-lg text-emerald-400">Onchain Ticket</h3>
                     <Pill variant="mint">UNMINTED</Pill>
                 </div>
-                 <div className="flex justify-center gap-3 my-6">
+                 <div className="grid grid-cols-3 gap-3 my-6">
                     {displayNumbers.map((n, i) => (
-                        <div key={i} className="h-16 w-16 bg-black/20 backdrop-blur-sm rounded-2xl flex items-center justify-center text-3xl font-black border border-emerald-500/30 shadow-md">
+                        <div key={i} className="h-14 w-full bg-black/20 backdrop-blur-sm rounded-xl flex items-center justify-center text-2xl font-black border border-emerald-500/30 shadow-md">
                             {n !== null ? n : '?'}
                         </div>
                     ))}
                 </div>
                 <div>
                     <p className="text-xs font-bold uppercase tracking-widest opacity-60 text-center">Draw Date</p>
-                    <p className="text-center font-bold">{timestamp ? `${formatDate(timestamp)} - ${formatTime(timestamp)}` : '...'}</p>
+                    <p className="text-center font-bold text-sm">{timestamp ? `${formatDate(timestamp)} - ${formatTime(timestamp)}` : '...'}</p>
                 </div>
             </div>
         </div>
@@ -96,8 +91,6 @@ const SystemStatusIndicator: React.FC<{ isDelayed: boolean; t: any }> = ({ isDel
   );
 };
 
-
-// --- MAIN APP ---
 function App() {
   const [lang, setLang] = useState<'en' | 'zh'>('en');
   const [isDark, setIsDark] = useState(() => localStorage.getItem('theme') === 'dark');
@@ -105,7 +98,6 @@ function App() {
   const [chainId, setChainId] = useState<string | null>(null);
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
   
-  // On-chain state
   const [jackpot, setJackpot] = useState(0.00);
   const [ticketPrice, setTicketPrice] = useState(0.00);
   const [referralBalance, setReferralBalance] = useState(0.00);
@@ -116,7 +108,6 @@ function App() {
   const [btcPrice, setBtcPrice] = useState<number | null>(null);
   const [now, setNow] = useState(new Date());
   
-  // UI State
   const [txStatus, setTxStatus] = useState<'idle' | 'awaiting' | 'mining' | 'success' | 'error'>('idle');
   const [isConnecting, setIsConnecting] = useState(false);
   const [claimStatus, setClaimStatus] = useState<Record<string, 'idle' | 'claiming' | 'success'>>({});
@@ -129,19 +120,16 @@ function App() {
 
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
-  const [showVerifyModal, setShowVerifyModal] = useState<{timestamp: number, numbers: number[]} | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
 
   const [profile, setProfile] = useState({ username: "LuckyPlayer", bio: "Onchain Enthusiast", avatarUrl: PRELOADED_AVATARS[0] });
 
-
-  // --- TRANSLATIONS ---
   const translations = {
     en: {
       title: "Onchain Jackpot", connect: "Connect", heroTitle: "Onchain Daily Prediction",
       heroSubtitle: "Verifiable jackpot settles twice daily at 00:00 & 12:00 UTC. Every entry is a unique ticket minted on MerlinChain.",
       mintTitle: "Mint New Entry", selectSchedule: "SELECT PREDICTION SCHEDULE",
-      select4: "SELECT 4 NUMBERS (1-9)", randomize: "Randomize", purchase: "Mint Ticket",
+      select4: "SELECT 6 NUMBERS (1-99)", randomize: "Randomize", purchase: "Mint Ticket",
       viewResults: "VIEW RESULTS", howItWorks: "HOW IT WORKS", countdownTitle: "Next Prediction Countdown", countdownSub: "00:00 & 12:00 UTC",
       myTickets: "My Entries", profile: "Profile", referral: "Referral & Rewards", logout: "Logout",
       save: "Save Changes", copyLink: "Copy Link", jackpotLabel: "JACKPOT", network: "MerlinChain",
@@ -151,7 +139,7 @@ function App() {
       referralBonus: "EARN ONCHAIN REWARDS FOR EVERY TICKET MINTED THROUGH YOUR LINK",
       footer: "Onchain Prediction • Powered by MerlinChain • Verifiable Assets",
       step1Title: "Connect & Switch", step1Desc: "Connect your wallet and switch to MerlinChain.",
-      step2Title: "Pick Your Numbers", step2Desc: "Select 4 numbers between 1-9. The order does not matter. These will be encoded into your ticket's on-chain data.",
+      step2Title: "Pick Your Numbers", step2Desc: "Select 6 numbers between 1-99. These will be encoded into your ticket's on-chain data.",
       step3Title: "Mint Your Entry", step3Desc: "Confirm the transaction to mint your unique ticket. Price is set by the contract owner.",
       step4Title: "Claim the Jackpot", step4Desc: "If your ticket's numbers match the daily prediction exactly, you can claim your share of the jackpot prize pool!",
       rules: "Prediction Rules", rule1: "A prediction event occurs every 12 hours (00:00 & 12:00 UTC).",
@@ -191,7 +179,7 @@ function App() {
       title: "链上大奖", connect: "连接", heroTitle: "链上每日预测",
       heroSubtitle: "可验证奖池每日 00:00 和 12:00 UTC 定时结算。每一次投注都会在 MerlinChain 上铸造一张独一无二的票证。",
       mintTitle: "铸造新票证", selectSchedule: "选择开奖时间",
-      select4: "选择 4 个数字 (1-9)", randomize: "随机生成", purchase: "铸造票证",
+      select4: "选择 6 个数字 (1-99)", randomize: "随机生成", purchase: "铸造票证",
       viewResults: "查看结果", howItWorks: "运作方式", countdownTitle: "下次预测倒计时", countdownSub: "00:00 & 12:00 UTC",
       myTickets: "我的票证", profile: "个人中心", referral: "推荐奖励", logout: "断开连接",
       save: "保存修改", copyLink: "复制链接", jackpotLabel: "当前奖池", network: "MerlinChain",
@@ -201,7 +189,7 @@ function App() {
       referralBonus: "通过您的链接每铸造一张票证，均可赚取链上奖励",
       footer: "链上预测 • 由 MerlinChain 提供支持 • 可验证资产",
       step1Title: "连接并切换", step1Desc: "连接您的钱包并切换到 MerlinChain。",
-      step2Title: "选择号码", step2Desc: "在 1-9 之间选择 4 个数字。顺序无关紧要。这些将编码到您票证的链上数据中。",
+      step2Title: "选择号码", step2Desc: "在 1-99 之间选择 6 个数字。这些将编码到您票证的链上数据中。",
       step3Title: "铸造投注", step3Desc: "确认交易以铸造您唯一的票证。价格由合约所有者设定。",
       step4Title: "领取大奖", step4Desc: "如果您的票证号码与每日预测完全匹配，即可领取奖池奖金份额！",
       rules: "预测规则", rule1: "每 12 小时进行一次预测 (00:00 & 12:00 UTC)。",
@@ -241,14 +229,10 @@ function App() {
 
   const t = translations[lang];
 
-  // --- WEB3 & CONTRACT INTERACTION ---
-
-  // Initialize provider and contract
   useEffect(() => {
     if (window.ethereum) {
       const ethProvider = new ethers.BrowserProvider(window.ethereum);
       setProvider(ethProvider);
-      // FIX: Use ethers.isAddress for robust validation of the contract address, which also resolves the TypeScript error.
       if (CONTRACT_ADDRESS && ethers.isAddress(CONTRACT_ADDRESS)) {
         const lotteryContract = new ethers.Contract(CONTRACT_ADDRESS, LOTTERY_ABI, ethProvider);
         setContract(lotteryContract);
@@ -256,21 +240,15 @@ function App() {
     }
   }, []);
 
-  // Handle account and chain changes
   useEffect(() => {
     const handleAccountsChanged = (accs: string[]) => {
       setAccount(accs[0] || null);
-      if (!accs[0]) { // On disconnect
-        setShowProfileModal(false);
-      }
+      if (!accs[0]) setShowProfileModal(false);
     };
     const handleChainChanged = (cid: string) => setChainId(cid);
-
     if (window.ethereum) {
       window.ethereum.on('accountsChanged', handleAccountsChanged);
       window.ethereum.on('chainChanged', handleChainChanged);
-      
-      // Initial fetch
       window.ethereum.request({ method: 'eth_accounts' }).then(handleAccountsChanged);
       window.ethereum.request({ method: 'eth_chainId' }).then(handleChainChanged);
     }
@@ -282,22 +260,17 @@ function App() {
     };
   }, []);
 
-  // Check for referrer in URL
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const refCode = urlParams.get('ref');
-    if (refCode && ethers.isAddress(refCode)) {
-      setReferrerFromUrl(refCode);
-    }
+    if (refCode && ethers.isAddress(refCode)) setReferrerFromUrl(refCode);
   }, []);
   
-  // Load profile from local storage
   useEffect(() => {
     const savedProfile = localStorage.getItem(`profile_${account}`);
     if (savedProfile) {
       setProfile(JSON.parse(savedProfile));
     } else {
-      // Reset to default if no saved profile for this account
       setProfile({ username: "LuckyPlayer", bio: "Onchain Enthusiast", avatarUrl: PRELOADED_AVATARS[0] });
     }
   }, [account]);
@@ -339,7 +312,6 @@ function App() {
       return;
     }
     try {
-      // Always fetch public data
       const [price, totalJackpot] = await Promise.all([
         contract.ticketPrice(),
         contract.getJackpot()
@@ -347,7 +319,6 @@ function App() {
       setTicketPrice(parseFloat(ethers.formatEther(price)));
       setJackpot(parseFloat(ethers.formatEther(totalJackpot)));
 
-      // Fetch user-specific data only if connected
       if (account) {
         const [refBalance, userTickets, refOf] = await Promise.all([
           contract.referralBalances(account),
@@ -369,12 +340,9 @@ function App() {
       }
     } catch (error) {
       console.error("Error fetching contract data:", error);
-      setTicketPrice(0);
-      setJackpot(0);
     }
   }, [contract, account, isCorrectChain]);
   
-  // Fetch settled draw data using events
   useEffect(() => {
     if (!contract) return;
     const fetchDraws = async () => {
@@ -383,12 +351,10 @@ function App() {
         const settledEvents = await contract.queryFilter(settledFilter, 0, 'latest');
         const rolloverFilter = contract.filters.DrawRolledOver();
         const rolloverEvents = await contract.queryFilter(rolloverFilter, 0, 'latest');
-        // FIX: Cast event `e` to `ethers.EventLog` to safely access the `args` property.
         const rolloverTimestamps = new Set<number>(rolloverEvents.map(e => Number((e as ethers.EventLog).args.fromDraw) * 1000));
         
         const draws: Record<string, Draw> = {};
         for (const event of settledEvents) {
-            // FIX: Cast event `event` to `ethers.EventLog` to safely access the `args` property.
             const args = (event as ethers.EventLog).args;
             const ts = Number(args.drawTimestamp) * 1000;
             const winnerCount = Number(args.winnerCount);
@@ -419,28 +385,14 @@ function App() {
     }
   }, [account, isCorrectChain, contract, fetchContractData]);
 
-  useEffect(() => {
-    if (!account) {
-      setTickets([]);
-      setReferralBalance(0);
-      setUserReferrer(null);
-    }
-  }, [account]);
-
   const connectWallet = async () => {
     if (window.ethereum) {
       try {
         setIsConnecting(true);
         const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
         setAccount(accs[0] || null);
-      } catch (e) { 
-        console.error("Wallet connection failed", e); 
-      } finally {
-        setIsConnecting(false);
-      }
-    } else {
-      alert("Please install MetaMask to participate.");
-    }
+      } catch (e) { console.error("Wallet connection failed", e); } finally { setIsConnecting(false); }
+    } else { alert("Please install MetaMask to participate."); }
   };
   
   const disconnectWallet = () => {
@@ -466,21 +418,16 @@ function App() {
         const tx = await contractWithSigner.setReferrer(referrerFromUrl);
         await tx.wait();
         setUserReferrer(referrerFromUrl);
-        setReferrerFromUrl(null); // Hide the banner
-    } catch (error) {
-        console.error("Failed to set referrer:", error);
-        alert("Failed to set referrer. They may already be set.");
-    } finally {
-        setIsSettingReferrer(false);
-    }
+        setReferrerFromUrl(null);
+    } catch (error) { alert("Failed to set referrer."); } finally { setIsSettingReferrer(false); }
   };
 
   const handleMint = async () => {
     if (!account) return connectWallet();
     if (!isCorrectChain) return switchNetwork();
     if (!provider || !contract || !selectedPredictionSlot) return;
-    if (selectedNumbers.length !== 4) {
-      alert("Please select exactly 4 numbers.");
+    if (selectedNumbers.length !== 6) {
+      alert("Please select exactly 6 numbers.");
       return;
     }
 
@@ -490,11 +437,9 @@ function App() {
         const contractWithSigner = contract.connect(signer) as ethers.Contract;
         const price = await contract.ticketPrice();
         
-        const nums: [number, number, number, number] = [
-            selectedNumbers[0],
-            selectedNumbers[1],
-            selectedNumbers[2],
-            selectedNumbers[3]
+        const nums: [number, number, number, number, number, number] = [
+            selectedNumbers[0], selectedNumbers[1], selectedNumbers[2],
+            selectedNumbers[3], selectedNumbers[4], selectedNumbers[5]
         ];
 
         const tx = await contractWithSigner.mintTicket(
@@ -507,7 +452,7 @@ function App() {
         await tx.wait();
         setTxStatus('success');
         setSelectedNumbers([]);
-        fetchContractData(); // Refresh data
+        fetchContractData();
         setTimeout(() => setTxStatus('idle'), 3000);
     } catch (error) {
         console.error("Minting failed:", error);
@@ -524,13 +469,9 @@ function App() {
         const contractWithSigner = contract.connect(signer) as ethers.Contract;
         const tx = await contractWithSigner.claimPrize(ticketId);
         await tx.wait();
-        await fetchContractData(); // Refetch to update claimed status
+        await fetchContractData();
         setClaimStatus(prev => ({ ...prev, [ticketId]: 'success' }));
-    } catch (error) {
-        console.error("Claiming failed:", error);
-        alert("Claim failed. Are you sure this is a winning ticket?");
-        setClaimStatus(prev => ({ ...prev, [ticketId]: 'idle' }));
-    }
+    } catch (error) { setClaimStatus(prev => ({ ...prev, [ticketId]: 'idle' })); }
   };
   
   const handleClaimReferral = async () => {
@@ -541,17 +482,10 @@ function App() {
         const contractWithSigner = contract.connect(signer) as ethers.Contract;
         const tx = await contractWithSigner.claimReferralRewards();
         await tx.wait();
-        await fetchContractData(); // Refetch to update balance
-    } catch (error) {
-        console.error("Referral claim failed:", error);
-        alert("Referral claim failed.");
-    } finally {
-        setIsClaimingReferral(false);
-    }
+        await fetchContractData();
+    } catch (error) { alert("Referral claim failed."); } finally { setIsClaimingReferral(false); }
   };
   
-  // --- UI & OTHER LOGIC ---
-
   useEffect(() => {
     if (isDark) { document.documentElement.classList.add('dark'); localStorage.setItem('theme', 'dark'); }
     else { document.documentElement.classList.remove('dark'); localStorage.setItem('theme', 'light'); }
@@ -585,17 +519,15 @@ function App() {
   }, [previousDraws]);
 
   const isSystemDelayed = useMemo(() => {
-      if (lastSettledTimestamp === 0 && Object.keys(previousDraws).length > 0) return false; // Not delayed if no draws have ever been settled
       if (lastSettledTimestamp === 0) return false;
       const timeSinceSettle = now.getTime() - lastSettledTimestamp;
-      // 12 hour interval + 1 hour grace period
       return timeSinceSettle > 13 * 60 * 60 * 1000;
-  }, [lastSettledTimestamp, now, previousDraws]);
+  }, [lastSettledTimestamp, now]);
 
   const handleRandomize = () => {
     const nums: number[] = [];
-    while (nums.length < 4) {
-      const r = Math.floor(Math.random() * 9) + 1;
+    while (nums.length < 6) {
+      const r = Math.floor(Math.random() * 99) + 1;
       if (!nums.includes(r)) nums.push(r);
     }
     setSelectedNumbers(nums.sort((a, b) => a - b));
@@ -657,12 +589,6 @@ function App() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 md:px-8 mt-6">
-        {referrerFromUrl && !userReferrer && account && (
-            <div className="mb-6 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 rounded-2xl p-4 flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-4">
-                <div className="text-sm font-medium text-indigo-700 dark:text-indigo-300"><b>{t.referrerFound}</b><p className="text-xs opacity-70 font-mono hidden md:block">{referrerFromUrl}</p></div>
-                <PrimaryButton onClick={handleSetReferrer} loading={isSettingReferrer} variant="ai">{t.saveReferrer}</PrimaryButton>
-            </div>
-        )}
         <section className="bg-white dark:bg-[#04211C] rounded-[3rem] border border-gray-100 dark:border-emerald-500/10 p-8 md:p-12 shadow-2xl flex flex-col lg:flex-row gap-12 items-stretch">
           <div className="flex-1 w-full"><Pill variant="mint">LIVE STATUS</Pill><h2 className="text-4xl md:text-6xl font-black font-display text-[#04211C] dark:text-white mt-8 leading-[1.05] tracking-tight">{t.heroTitle}</h2><p className="mt-8 text-lg font-bold text-black dark:text-white max-w-lg leading-relaxed">{t.heroSubtitle}</p></div>
           <div className="w-full lg:w-[480px]">
@@ -716,18 +642,14 @@ function App() {
               <h3 className="text-2xl font-black font-display text-[#04211C] dark:text-white">{t.mintTitle}</h3>
               <div className="mt-8">
                   <label className="text-xs font-black uppercase tracking-widest text-black/60 dark:text-white/60 mb-3 block">{t.selectSchedule}</label>
-                  {predictionSlots.length > 0 ? (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                          {predictionSlots.slice(0, 8).map(ts => (
-                              <button key={ts} onClick={() => setSelectedPredictionSlot(ts)} className={`px-4 py-3 rounded-xl text-xs font-bold transition-all border ${selectedPredictionSlot === ts ? 'bg-emerald-500 text-white border-emerald-500 shadow-md' : 'bg-gray-50 dark:bg-emerald-500/5 border-gray-200 dark:border-emerald-500/10 hover:bg-gray-100 dark:hover:bg-emerald-500/10 text-emerald-800 dark:text-emerald-300'}`}>
-                                  <span className="block">{formatDate(ts)}</span>
-                                  <span className="opacity-70">{formatTime(ts)}</span>
-                              </button>
-                          ))}
-                      </div>
-                  ) : (
-                    <div className="text-center p-4 rounded-xl bg-gray-50 dark:bg-emerald-500/5 border border-gray-100 dark:border-emerald-500/10 text-sm text-gray-500 dark:text-gray-400">{t.noDrawsAvailable}</div>
-                  )}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {predictionSlots.slice(0, 8).map(ts => (
+                          <button key={ts} onClick={() => setSelectedPredictionSlot(ts)} className={`px-4 py-3 rounded-xl text-[10px] font-bold transition-all border ${selectedPredictionSlot === ts ? 'bg-emerald-500 text-white border-emerald-500 shadow-md' : 'bg-gray-50 dark:bg-emerald-500/5 border-gray-200 dark:border-emerald-500/10 hover:bg-gray-100 dark:hover:bg-emerald-500/10 text-emerald-800 dark:text-emerald-300'}`}>
+                              <span className="block">{formatDate(ts)}</span>
+                              <span className="opacity-70">{formatTime(ts)}</span>
+                          </button>
+                      ))}
+                  </div>
               </div>
               <div className="mt-8">
                   <div className="flex justify-between items-center mb-3">
@@ -737,9 +659,9 @@ function App() {
                         <button onClick={() => setSelectedNumbers([])} className="text-xs font-bold text-red-500 hover:underline">{t.clear}</button>
                       </div>
                   </div>
-                  <div className="grid grid-cols-9 gap-1.5">
-                      {Array.from({ length: 9 }, (_, i) => i + 1).map(num => (
-                          <button key={num} onClick={() => setSelectedNumbers(prev => prev.includes(num) ? prev.filter(n => n !== num) : (prev.length < 4 ? [...prev, num].sort((a,b)=>a-b) : prev))} className={`h-10 w-full rounded-lg text-sm font-bold transition-all border ${selectedNumbers.includes(num) ? 'bg-emerald-500 text-white border-emerald-500 shadow-md scale-105' : 'bg-gray-50 dark:bg-emerald-500/5 hover:bg-gray-100 dark:hover:bg-emerald-500/10 border-gray-200 dark:border-emerald-500/10 text-emerald-800 dark:text-emerald-300'}`}>{num}</button>
+                  <div className="grid grid-cols-5 sm:grid-cols-10 gap-1.5 h-[320px] overflow-y-auto pr-2 scrollbar-hide border border-gray-100 dark:border-white/5 p-3 rounded-xl bg-gray-50 dark:bg-black/20">
+                      {Array.from({ length: 99 }, (_, i) => i + 1).map(num => (
+                          <button key={num} onClick={() => setSelectedNumbers(prev => prev.includes(num) ? prev.filter(n => n !== num) : (prev.length < 6 ? [...prev, num].sort((a,b)=>a-b) : prev))} className={`h-10 w-full rounded-lg text-xs font-bold transition-all border ${selectedNumbers.includes(num) ? 'bg-emerald-500 text-white border-emerald-500 shadow-md scale-105' : 'bg-white dark:bg-emerald-500/5 hover:bg-gray-100 dark:hover:bg-emerald-500/10 border-gray-200 dark:border-emerald-500/10 text-emerald-800 dark:text-emerald-300'}`}>{num}</button>
                       ))}
                   </div>
               </div>
@@ -754,7 +676,7 @@ function App() {
                   </div>
               </div>
               <div className="mt-4">
-                <PrimaryButton onClick={handleMint} disabled={selectedNumbers.length !== 4 || txStatus !== 'idle' || !selectedPredictionSlot} loading={txStatus === 'awaiting' || txStatus === 'mining'}>
+                <PrimaryButton onClick={handleMint} disabled={selectedNumbers.length !== 6 || txStatus !== 'idle' || !selectedPredictionSlot} loading={txStatus === 'awaiting' || txStatus === 'mining'}>
                     {txStatus === 'success' ? 'Success!' : txStatus === 'error' ? 'Error!' : t.purchase}
                 </PrimaryButton>
               </div>
@@ -791,11 +713,7 @@ function App() {
 }
 
 const rootElement = document.getElementById('root');
-if (!rootElement) throw new Error('Failed to find the root element');
-
-const root = ReactDOM.createRoot(rootElement);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+if (rootElement) {
+  const root = ReactDOM.createRoot(rootElement);
+  root.render(<React.StrictMode><App /></React.StrictMode>);
+}
