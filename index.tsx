@@ -141,7 +141,7 @@ function App() {
       title: "Onchain Jackpot", connect: "Connect", heroTitle: "Onchain Daily Prediction",
       heroSubtitle: "Verifiable jackpot settles twice daily at 00:00 & 12:00 UTC. Every entry is a unique ticket minted on MerlinChain.",
       mintTitle: "Mint New Entry", selectSchedule: "SELECT PREDICTION SCHEDULE",
-      select4: "SELECT 4 NUMBERS (1-9)", randomize: "Randomize", purchase: "Mint Ticket",
+      select4: "SELECT 4 NUMBERS (1-99)", randomize: "Randomize", purchase: "Mint Ticket",
       viewResults: "VIEW RESULTS", howItWorks: "HOW IT WORKS", countdownTitle: "Next Prediction Countdown", countdownSub: "00:00 & 12:00 UTC",
       myTickets: "My Entries", profile: "Profile", referral: "Referral & Rewards", logout: "Logout",
       save: "Save Changes", copyLink: "Copy Link", jackpotLabel: "JACKPOT", network: "MerlinChain",
@@ -151,7 +151,7 @@ function App() {
       referralBonus: "EARN ONCHAIN REWARDS FOR EVERY TICKET MINTED THROUGH YOUR LINK",
       footer: "Onchain Prediction • Powered by MerlinChain • Verifiable Assets",
       step1Title: "Connect & Switch", step1Desc: "Connect your wallet and switch to MerlinChain.",
-      step2Title: "Pick Your Numbers", step2Desc: "Select 4 numbers between 1-9. The order does not matter. These will be encoded into your ticket's on-chain data.",
+      step2Title: "Pick Your Numbers", step2Desc: "Select 4 numbers between 1-99. The order does not matter. These will be encoded into your ticket's on-chain data.",
       step3Title: "Mint Your Entry", step3Desc: "Confirm the transaction to mint your unique ticket. Price is set by the contract owner.",
       step4Title: "Claim the Jackpot", step4Desc: "If your ticket's numbers match the daily prediction exactly, you can claim your share of the jackpot prize pool!",
       rules: "Prediction Rules", rule1: "A prediction event occurs every 12 hours (00:00 & 12:00 UTC).",
@@ -191,7 +191,7 @@ function App() {
       title: "链上大奖", connect: "连接", heroTitle: "链上每日预测",
       heroSubtitle: "可验证奖池每日 00:00 和 12:00 UTC 定时结算。每一次投注都会在 MerlinChain 上铸造一张独一无二的票证。",
       mintTitle: "铸造新票证", selectSchedule: "选择开奖时间",
-      select4: "选择 4 个数字 (1-9)", randomize: "随机生成", purchase: "铸造票证",
+      select4: "选择 4 个数字 (1-99)", randomize: "随机生成", purchase: "铸造票证",
       viewResults: "查看结果", howItWorks: "运作方式", countdownTitle: "下次预测倒计时", countdownSub: "00:00 & 12:00 UTC",
       myTickets: "我的票证", profile: "个人中心", referral: "推荐奖励", logout: "断开连接",
       save: "保存修改", copyLink: "复制链接", jackpotLabel: "当前奖池", network: "MerlinChain",
@@ -201,7 +201,7 @@ function App() {
       referralBonus: "通过您的链接每铸造一张票证，均可赚取链上奖励",
       footer: "链上预测 • 由 MerlinChain 提供支持 • 可验证资产",
       step1Title: "连接并切换", step1Desc: "连接您的钱包并切换到 MerlinChain。",
-      step2Title: "选择号码", step2Desc: "在 1-9 之间选择 4 个数字。顺序无关紧要。这些将编码到您票证的链上数据中。",
+      step2Title: "选择号码", step2Desc: "在 1-99 之间选择 4 个数字。顺序无关紧要。这些将编码到您票证的链上数据中。",
       step3Title: "铸造投注", step3Desc: "确认交易以铸造您唯一的票证。价格由合约所有者设定。",
       step4Title: "领取大奖", step4Desc: "如果您的票证号码与每日预测完全匹配，即可领取奖池奖金份额！",
       rules: "预测规则", rule1: "每 12 小时进行一次预测 (00:00 & 12:00 UTC)。",
@@ -595,7 +595,7 @@ function App() {
   const handleRandomize = () => {
     const nums: number[] = [];
     while (nums.length < 4) {
-      const r = Math.floor(Math.random() * 9) + 1;
+      const r = Math.floor(Math.random() * 99) + 1;
       if (!nums.includes(r)) nums.push(r);
     }
     setSelectedNumbers(nums.sort((a, b) => a - b));
@@ -669,197 +669,4 @@ function App() {
             <div className="relative flex flex-col items-center justify-center text-center bg-gradient-to-br from-[#111] to-black rounded-[3rem] p-8 md:p-12 text-white shadow-2xl border border-white/10 overflow-hidden h-full">
                 <div className="absolute -inset-24 bg-emerald-500/10 [mask-image:radial-gradient(ellipse_at_center,black,transparent_60%)] blur-3xl opacity-60"></div>
                 <div className="h-16 w-16 mb-4 opacity-80">
-                  <svg width="64" height="64" viewBox="0 0 80 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <g fill="#0D6B58"><polygon points="62,20 51,39.05 29,39.05 18,20 29,0.95 51,0.95"/><polygon points="62,80 51,99.05 29,99.05 18,80 29,60.95 51,60.95"/><polygon points="44.68,50 33.68,69.05 11.68,69.05 0.68,50 11.68,30.95 33.68,30.95"/><polygon points="79.32,50 68.32,69.05 46.32,69.05 35.32,50 46.32,30.95 68.32,30.95"/></g>
-                    <g fill="#D4AF37"><polygon points="60,20 50,37.32 30,37.32 20,20 30,2.68 50,2.68"/><polygon points="60,80 50,97.32 30,97.32 20,80 30,62.68 50,62.68"/><polygon points="42.68,50 32.68,67.32 12.68,67.32 2.68,50 12.68,32.68 32.68,32.68"/><polygon points="77.32,50 67.32,67.32 47.32,67.32 37.32,50 47.32,32.68 67.32,32.68"/></g>
-                    <g fill="none" stroke="#F9D77E" strokeWidth="1.5"><polygon points="58,20 49,35.59 31,35.59 22,20 31,4.41 49,4.41"/><polygon points="58,80 49,95.59 31,95.59 22,80 31,64.41 49,64.41"/><polygon points="40.68,50 31.68,65.59 13.68,65.59 4.68,50 13.68,34.41 31.68,34.41"/><polygon points="75.32,50 66.32,65.59 48.32,65.59 39.32,50 48.32,34.41 66.32,34.41"/></g>
-                  </svg>
-                </div>
-                <span className="text-4xl font-black text-yellow-400 uppercase tracking-[0.4em] mb-4">{t.jackpotLabel}</span>
-                <p className="text-2xl font-medium text-white/60 mt-4">{jackpot.toFixed(4)} BTC</p>
-                <div className="flex items-baseline gap-2 mt-1">
-                    <span className="text-7xl md:text-8xl font-black font-display tracking-tight text-white [text-shadow:0_0_30px_rgba(255,255,255,0.4)]">
-                        ${btcPrice ? (jackpot * btcPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '...'}
-                    </span>
-                </div>
-            </div>
-          </div>
-        </section>
-
-        <div className="mt-12 bg-white dark:bg-[#04211C] rounded-[2rem] border border-gray-100 dark:border-emerald-500/10 p-8 flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl">
-          <div className="flex items-center gap-4"><div className="p-2.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl text-emerald-800 dark:text-emerald-400"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div><h3 className="font-bold text-lg dark:text-white">{t.countdownTitle}</h3><p className="text-xs font-bold text-black dark:text-white">{t.countdownSub}</p></div></div>
-          <div className="flex gap-6 justify-center"><TimeDisplay value={pad2(timeLeft.d)} label={t.days} /><div className="text-4xl font-black opacity-20 dark:text-white">:</div><TimeDisplay value={pad2(timeLeft.h)} label={t.hours} /><div className="text-4xl font-black opacity-20 dark:text-white">:</div><TimeDisplay value={pad2(timeLeft.m)} label={t.minutes} /><div className="text-4xl font-black opacity-20 dark:text-white">:</div><TimeDisplay value={pad2(timeLeft.s)} label={t.seconds} /></div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-12">
-          <div className="lg:col-span-7 bg-white dark:bg-[#04211C] rounded-[2.5rem] border border-gray-100 dark:border-emerald-500/10 p-10 shadow-xl min-h-[400px]">
-            <h2 className="text-2xl font-bold font-display dark:text-white mb-8">{account ? t.myTickets : t.previousDrawings}</h2>
-             {account ? (
-                <div className="space-y-4">
-                    {tickets.length === 0 ? (
-                         <div className="text-center py-12 px-6 rounded-2xl bg-gray-50 dark:bg-emerald-500/5 border border-gray-100 dark:border-emerald-500/10"><h3 className="mt-4 text-sm font-semibold text-gray-800 dark:text-white">{t.noTicketsFound}</h3><p className="text-xs text-gray-400 mt-2">{t.mintToSee}</p></div>
-                    ) : (
-                        tickets.map(ticket => <TicketCard key={ticket.id} ticket={ticket} t={t} previousDraws={previousDraws} handleClaim={handleClaim} claimStatus={claimStatus} formatDate={formatDate} formatTime={formatTime} />)
-                    )}
-                </div>
-            ) : (
-                 <div className="space-y-4">
-                  {Object.keys(previousDraws).length === 0 ? (
-                    <div className="text-center py-12 px-6 rounded-2xl bg-gray-50 dark:bg-emerald-500/5 border border-gray-100 dark:border-emerald-500/10"><h3 className="mt-4 text-sm font-semibold text-gray-800 dark:text-white">{t.noSettledPredictions}</h3></div>
-                  ) : (
-                    Object.entries(previousDraws).sort((a, b) => Number(b[0]) - Number(a[0])).map(([drawTime, drawData]: [string, Draw]) => (
-                        <div key={drawTime} className="bg-gray-50 dark:bg-emerald-500/5 p-4 rounded-2xl border dark:border-emerald-500/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-                          <div><p className="font-bold text-sm dark:text-white">{formatDate(drawTime)}</p><p className="text-[10px] uppercase tracking-widest font-bold text-gray-400 dark:text-emerald-500/40">{formatTime(drawTime)}</p></div>
-                          <div className="flex gap-2">{drawData.winningNumbers.map((n, i) => <div key={i} className="h-10 w-10 rounded-full border-2 border-emerald-200 bg-white dark:bg-emerald-500/10 dark:border-emerald-500/20 text-emerald-800 dark:text-white flex items-center justify-center font-black text-sm shadow-sm">{n}</div>)}</div>
-                          <div className="text-center">
-                              <p className="font-black text-lg dark:text-white">{drawData.winnerCount}</p>
-                              <p className="text-[9px] uppercase tracking-widest font-bold text-gray-400 dark:text-emerald-500/40 -mt-1">{t.winnersList}</p>
-                              {drawData.isRollover && (
-                                  <div className="mt-2">
-                                      <Pill variant="info">{t.rolledOver.toUpperCase()}</Pill>
-                                  </div>
-                              )}
-                          </div>
-                          <button onClick={() => setShowVerifyModal({timestamp: Number(drawTime), numbers: drawData.winningNumbers})} className="px-3 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/10 transition-colors flex items-center gap-2"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>{t.verifyFairness}</button>
-                        </div>
-                    ))
-                  )}
-                </div>
-            )}
-          </div>
-
-          <div className="lg:col-span-5 space-y-8">
-            <div className="bg-white dark:bg-[#04211C] rounded-[2.5rem] border border-gray-100 dark:border-emerald-500/10 p-10 shadow-xl">
-              <h2 className="text-2xl font-bold font-display mb-8 dark:text-white">{t.createNftTicket}</h2>
-              
-              <TicketPreview t={t} numbers={selectedNumbers} timestamp={selectedPredictionSlot} formatDate={formatDate} formatTime={formatTime} />
-
-              <div className="mb-8">
-                <label className="text-xl font-black uppercase text-black dark:text-white mb-4 block tracking-widest">{t.selectSchedule}</label>
-                {predictionSlots.length > 0 && selectedPredictionSlot ? (
-                  <div className="relative">
-                    <select value={selectedPredictionSlot} onChange={(e) => setSelectedPredictionSlot(Number(e.target.value))} className="w-full appearance-none px-5 py-4 rounded-2xl border-2 border-emerald-50 dark:border-emerald-500/10 bg-white dark:bg-emerald-500/5 text-sm font-bold text-emerald-900 dark:text-white focus:outline-none focus:border-emerald-400 transition-all cursor-pointer">
-                      {predictionSlots.map(ts => (<option key={ts} value={ts} className="dark:bg-[#04211C]">{formatDate(ts)} - {formatTime(ts)}</option>))}
-                    </select>
-                    <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-emerald-800/40"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
-                  </div>
-                ) : (
-                  <div className="text-center py-4 rounded-2xl bg-gray-50 dark:bg-emerald-500/5 border border-gray-100 dark:border-emerald-500/10">
-                    <p className="text-sm font-semibold text-gray-800 dark:text-white">{t.noDrawsAvailable}</p>
-                    <p className="text-xs text-gray-400 mt-1">{t.checkBackLater}</p>
-                  </div>
-                )}
-              </div>
-              <div className="mb-8"><label className="text-xs font-black uppercase tracking-widest text-black/60 dark:text-white/60 mb-3 block">{t.select4}</label><div className="grid grid-cols-3 gap-3">{[1,2,3,4,5,6,7,8,9].map(n => {
-                  const isSelected = selectedNumbers.includes(n);
-                  const selectionIndex = isSelected ? selectedNumbers.indexOf(n) : -1;
-                  return (
-                      <button 
-                          key={n} 
-                          onClick={() => { 
-                              if(isSelected) {
-                                  setSelectedNumbers(s => s.filter(x => x !== n));
-                              } else if(selectedNumbers.length < 4) {
-                                  setSelectedNumbers(s => [...s, n]);
-                              }
-                          }} 
-                          className={`relative h-16 rounded-2xl flex items-center justify-center text-xl font-black transition-all border-2 ${isSelected ? "bg-emerald-500 dark:bg-emerald-600 text-white border-emerald-600 dark:border-emerald-700" : "bg-white dark:bg-emerald-500/5 border-gray-50 dark:border-emerald-500/10 dark:text-white hover:border-[#7FE6C3]"}`}
-                      >
-                          {n}
-                          {isSelected && (
-                              <span className="absolute top-1.5 right-1.5 text-[10px] font-bold bg-black/20 text-white rounded-full h-5 w-5 flex items-center justify-center backdrop-blur-sm">
-                                  {selectionIndex + 1}
-                              </span>
-                          )}
-                      </button>
-                  )
-              })}</div></div>
-              <div className="grid grid-cols-2 gap-3 mb-8">
-                  <PrimaryButton onClick={handleRandomize} variant="outline">{t.randomize}</PrimaryButton>
-                  <PrimaryButton onClick={() => setSelectedNumbers([])} variant="outline">{t.clear}</PrimaryButton>
-              </div>
-              <div className="bg-emerald-50 dark:bg-emerald-500/5 rounded-[2rem] p-8 border dark:border-emerald-500/10">
-                <div className="flex justify-between items-center mb-6 h-[52px]">
-                  <span className="text-xs font-black text-black/60 dark:text-white/60 uppercase tracking-widest">{t.totalPrice}</span>
-                  <div className="text-right">
-                    <span className="text-xl font-black text-black dark:text-white">{ticketPrice > 0 ? `${parseFloat(ticketPrice.toPrecision(10))} BTC` : '...'}</span>
-                    {btcPrice && ticketPrice > 0 && <p className="text-sm font-medium text-emerald-600/60 dark:text-emerald-400/60">({(ticketPrice * btcPrice).toLocaleString('en-US', { style: 'currency', currency: 'USD' })})</p>}
-                  </div>
-                </div>
-                <PrimaryButton onClick={handleMint} disabled={selectedNumbers.length < 4 || txStatus === 'mining' || txStatus === 'awaiting' || !contract || !selectedPredictionSlot || ticketPrice === 0}>{account ? t.purchase : t.connect}</PrimaryButton>
-                <p className="mt-4 text-xs text-center text-black/50 dark:text-white/50 uppercase tracking-widest">{t.gasFeesNote}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <section className="mt-12 bg-white dark:bg-[#04211C] rounded-[2rem] border border-gray-100 dark:border-emerald-500/10 p-8 md:p-12 shadow-xl">
-          <div className="grid md:grid-cols-2 gap-8 lg:gap-16">
-            <div>
-              <h3 className="text-xl font-bold font-display text-[#04211C] dark:text-white mb-6">{t.rules}</h3>
-              <ul className="space-y-4">
-                {[t.rule1, t.rule2, t.rule3, t.rule4].map((rule, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <div className="p-1 bg-emerald-100 dark:bg-emerald-500/10 rounded-full mt-1">
-                      <svg className="w-4 h-4 text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                    </div>
-                    <span className="text-sm text-emerald-900/70 dark:text-white/60 font-medium">{rule}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-xl font-bold font-display text-[#04211C] dark:text-white mb-6">{t.disclaimer}</h3>
-              <p className="text-sm text-emerald-900/60 dark:text-white/50 font-medium leading-relaxed border-l-4 border-emerald-200 dark:border-emerald-500/20 pl-6">{t.disclaimerText}</p>
-            </div>
-          </div>
-        </section>
-
-        {/* --- All Modals (Lazy Loaded) --- */}
-        <Suspense fallback={<div />}>
-            {showResultsModal && (
-                <ResultsModal
-                    t={t}
-                    onClose={() => setShowResultsModal(false)}
-                    previousDraws={previousDraws}
-                />
-            )}
-            {showGuideModal && (
-                <GuideModal t={t} onClose={() => setShowGuideModal(false)} />
-            )}
-            {showProfileModal && account && (
-                <ProfileModal
-                    t={t}
-                    isOpen={showProfileModal}
-                    onClose={() => setShowProfileModal(false)}
-                    profile={profile}
-                    setProfile={setProfile}
-                    account={account}
-                    referralBalance={referralBalance}
-                    btcPrice={btcPrice}
-                    onClaimReferral={handleClaimReferral}
-                    isClaimingReferral={isClaimingReferral}
-                    onLogout={disconnectWallet}
-                    tickets={tickets}
-                    TicketCardComponent={TicketCard}
-                    formatDate={formatDate}
-                    formatTime={formatTime}
-                    handleClaim={handleClaim}
-                    claimStatus={claimStatus}
-                    previousDraws={previousDraws}
-                />
-            )}
-        </Suspense>
-        
-      </main>
-      
-      <footer className="max-w-7xl mx-auto px-8 py-20 mt-12 border-t border-emerald-100 dark:border-emerald-500/10 text-center">
-        <p className="text-[10px] font-black text-emerald-900/20 dark:text-white/10 uppercase tracking-[0.3em]">{t.footer}</p>
-      </footer>
-    </div>
-  );
-}
-
-
-const root = ReactDOM.createRoot(document.getElementById('root')!);
-root.render(<React.StrictMode><App /></React.StrictMode>);
+                  <svg width="64" height="64" viewBox="0 0 80 100" fill="none" xmlns="http://www.w3
