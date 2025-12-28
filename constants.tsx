@@ -23,7 +23,7 @@ export const MERLIN_NETWORK = {
   blockExplorerUrls: ['https://testnet-scan.merlinchain.io'],
 };
 
-export const CONTRACT_ADDRESS = "YOUR_NEW_DEPLOYED_CONTRACT_ADDRESS_HERE";
+export const CONTRACT_ADDRESS = "0x7E12C06AD5F5C14ADA01563b197838A5328f07Cb";
 
 export const LOTTERY_ABI = [
   "constructor(address initialOwner, address _devWallet, uint256 _ticketPrice, uint256 _referralReward, uint16 _jackpotBps, uint16 _devBps)",
