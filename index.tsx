@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import ReactDOM from "react-dom/client";
 import { ethers } from "ethers";
@@ -38,6 +37,7 @@ interface Draw {
     prizePerWinner: number;
     winningNumbers: number[];
     settled: boolean;
+    isRollover?: boolean;
 }
 
 // --- UTILS ---
@@ -162,7 +162,7 @@ function App() {
       select4: "SELECT 4 NUMBERS (1-9)", randomize: "Randomize", purchase: "Mint Ticket",
       viewResults: "VIEW RESULTS", howItWorks: "HOW IT WORKS", countdownTitle: "Next Prediction Countdown", countdownSub: "Reveal: 00:00 & 12:00 UTC",
       myTickets: "My Entries", profile: "Profile", referral: "Referral & Rewards", logout: "Logout",
-      save: "Save Changes", copyLink: "Copy Link", jackpotLabel: "CURRENT JACKPOT", network: "MERLIN TESTNET",
+      save: "Save Changes", copyLink: "Copy Link", jackpotLabel: "UPCOMING JACKPOT", network: "MERLIN TESTNET",
       switchToTestnet: "Switch to Merlin Testnet", latestResult: "Latest Result", settledMsg: "PREDICTION SUCCESSFULLY SETTLED",
       verifyingOnchain: "Verifying Onchain Entropy...", revealSuccess: "Settlement Complete", days: "Days", hours: "Hours", minutes: "Minutes", seconds: "Seconds",
       totalPrice: "TOTAL PRICE", gasFeesNote: "+ Gas Fees Apply", targetLottery: "TARGET DRAW",
@@ -188,6 +188,7 @@ function App() {
       totalEarned: "Total Earned",
       noTicketsFound: "No tickets found.",
       mintToSee: "Mint an entry to see it here.",
+      rolledOver: "Rolled Over",
     },
     zh: {
       title: "链上大奖", connect: "连接", heroTitle: "链上每日预测",
@@ -196,7 +197,7 @@ function App() {
       select4: "选择 4 个数字 (1-9)", randomize: "随机生成", purchase: "铸造票证",
       viewResults: "查看结果", howItWorks: "运作方式", countdownTitle: "下次预测倒计时", countdownSub: "开奖时间: 00:00 & 12:00 UTC",
       myTickets: "我的票证", profile: "个人中心", referral: "推荐奖励", logout: "断开连接",
-      save: "保存修改", copyLink: "复制链接", jackpotLabel: "当前奖池", network: "MERLIN 测试网",
+      save: "保存修改", copyLink: "复制链接", jackpotLabel: "下期奖池", network: "MERLIN 测试网",
       switchToTestnet: "切换至 Merlin 测试网", latestResult: "最新开奖", settledMsg: "预测已成功结算",
       verifyingOnchain: "验证链上数据...", revealSuccess: "结算完成", days: "天", hours: "小时", minutes: "分钟", seconds: "秒",
       totalPrice: "总价", gasFeesNote: "+ 需支付网络 Gas 费", targetLottery: "目标期数",
@@ -222,6 +223,7 @@ function App() {
       totalEarned: "总收益",
       noTicketsFound: "未找到任何票证。",
       mintToSee: "铸造一张票证即可在此处查看。",
+      rolledOver: "已滚存",
     }
   };
 
@@ -300,27 +302,44 @@ function App() {
   }, [chainId]);
 
   const fetchContractData = useCallback(async () => {
-    if (!contract || !account || !isCorrectChain) return;
+    if (!contract || !isCorrectChain) return;
     try {
-      const [price, refBalance, userTickets, refOf] = await Promise.all([
-        contract.ticketPrice(),
-        contract.referralBalances(account),
-        contract.getTicketsByOwner(account),
-        contract.referrerOf(account),
-      ]);
+        const promises = [contract.ticketPrice()];
+        if(account) {
+            promises.push(
+                contract.referralBalances(account),
+                contract.getTicketsByOwner(account),
+                contract.referrerOf(account),
+                contract.getJackpot()
+            );
+        } else {
+             promises.push(
+                Promise.resolve(ethers.parseEther("0")), // referralBalances
+                Promise.resolve([]), // tickets
+                Promise.resolve(ethers.ZeroAddress), // referrer
+                contract.getJackpot()
+             );
+        }
+
+      const [price, refBalance, userTickets, refOf, totalJackpot] = await Promise.all(promises);
 
       setTicketPrice(parseFloat(ethers.formatEther(price)));
-      setReferralBalance(parseFloat(ethers.formatEther(refBalance)));
-      setUserReferrer(refOf === ethers.ZeroAddress ? null : refOf);
-      
-      const formattedTickets = userTickets.map((t: any) => ({
-        id: t.id.toString(),
-        owner: t.owner,
-        numbers: t.numbers.map(Number),
-        drawTimestamp: Number(t.drawTimestamp) * 1000,
-        claimed: t.claimed,
-      })).sort((a: Ticket, b: Ticket) => b.drawTimestamp - a.drawTimestamp);
-      setTickets(formattedTickets);
+      setJackpot(parseFloat(ethers.formatEther(totalJackpot)));
+
+      if (account) {
+        setReferralBalance(parseFloat(ethers.formatEther(refBalance)));
+        setUserReferrer(refOf === ethers.ZeroAddress ? null : refOf);
+        
+        const formattedTickets = userTickets.map((t: any) => ({
+          id: t.id.toString(),
+          owner: t.owner,
+          numbers: t.numbers.map(Number),
+          drawTimestamp: Number(t.drawTimestamp) * 1000,
+          claimed: t.claimed,
+        })).sort((a: Ticket, b: Ticket) => b.drawTimestamp - a.drawTimestamp);
+        setTickets(formattedTickets);
+      }
+
     } catch (error) {
       console.error("Error fetching base contract data:", error);
     }
@@ -331,19 +350,31 @@ function App() {
     if (!contract) return;
     const fetchDraws = async () => {
       try {
+        // Fetch settled events
         const settledFilter = contract.filters.DrawSettled();
         const settledEvents = await contract.queryFilter(settledFilter, 0, 'latest');
         
+        // Fetch rollover events and create a set of rolled-over timestamps for easy lookup
+        const rolloverFilter = contract.filters.DrawRolledOver();
+        const rolloverEvents = await contract.queryFilter(rolloverFilter, 0, 'latest');
+        const rolloverTimestamps = new Set<number>();
+        for (const event of rolloverEvents) {
+            const args = event.args as any;
+            rolloverTimestamps.add(Number(args.fromDraw) * 1000);
+        }
+
         const draws: Record<string, Draw> = {};
         for (const event of settledEvents) {
             const args = event.args as any;
             const ts = Number(args.drawTimestamp) * 1000;
+            const winnerCount = Number(args.winnerCount);
             draws[ts] = {
                 jackpotTotal: parseFloat(ethers.formatEther(args.jackpot)),
-                winnerCount: Number(args.winnerCount),
-                prizePerWinner: parseFloat(ethers.formatEther(args.prizePerWinner)), 
+                winnerCount: winnerCount,
+                prizePerWinner: parseFloat(ethers.formatEther(args.prizePerWinner)),
                 winningNumbers: args.winningNumbers.map(Number),
-                settled: true
+                settled: true,
+                isRollover: winnerCount === 0 && rolloverTimestamps.has(ts),
             };
         }
         setPreviousDraws(draws);
@@ -354,34 +385,22 @@ function App() {
     fetchDraws();
   }, [contract]);
 
-  // Fetch global jackpot size
-  useEffect(() => {
-    if (!contract) return;
-    const fetchJackpot = async () => {
-      try {
-        const jackpotValue = await contract.getJackpot();
-        setJackpot(parseFloat(ethers.formatEther(jackpotValue)));
-      } catch (e) {
-        console.error("Could not fetch jackpot:", e);
-        setJackpot(0);
-      }
-    };
-    fetchJackpot();
-  }, [contract]);
-
 
   useEffect(() => {
+    fetchContractData(); // Fetch global data like jackpot and ticket price initially
+    
     if (account && isCorrectChain) {
-      fetchContractData();
+        // This part fetches user-specific data
+        fetchContractData();
     } else {
       setTickets([]);
       setReferralBalance(0);
       setUserReferrer(null);
     }
     
-    if (contract && account && isCorrectChain) {
-        const mintFilter = contract.filters.TicketMinted(account);
-        const handleEvent = () => fetchContractData();
+    if (contract && isCorrectChain) {
+        const mintFilter = contract.filters.TicketMinted(account || undefined);
+        const handleEvent = () => fetchContractData(); // Refetch all data on mint
         contract.on(mintFilter, handleEvent);
         return () => { contract.off(mintFilter, handleEvent); };
     }
@@ -696,7 +715,16 @@ function App() {
                         <div key={drawTime} className="bg-gray-50 dark:bg-emerald-500/5 p-4 rounded-2xl border dark:border-emerald-500/10 flex flex-col sm:flex-row items-center justify-between gap-4">
                           <div><p className="font-bold text-sm dark:text-white">{formatDate(drawTime)}</p><p className="text-[10px] uppercase tracking-widest font-bold text-gray-400 dark:text-emerald-500/40">{formatTime(drawTime)}</p></div>
                           <div className="flex gap-2">{drawData.winningNumbers.map((n, i) => <div key={i} className="h-10 w-10 rounded-full border-2 border-emerald-200 bg-white dark:bg-emerald-500/10 dark:border-emerald-500/20 text-emerald-800 dark:text-white flex items-center justify-center font-black text-sm shadow-sm">{n}</div>)}</div>
-                          <div className="text-center"><p className="font-black text-lg dark:text-white">{drawData.winnerCount}</p><p className="text-[9px] uppercase tracking-widest font-bold text-gray-400 dark:text-emerald-500/40">{t.winnersList}</p></div>
+                          <div className="text-center">
+                            {drawData.isRollover ? (
+                                <Pill variant="info">{t.rolledOver.toUpperCase()}</Pill>
+                            ) : (
+                                <>
+                                <p className="font-black text-lg dark:text-white">{drawData.winnerCount}</p>
+                                <p className="text-[9px] uppercase tracking-widest font-bold text-gray-400 dark:text-emerald-500/40">{t.winnersList}</p>
+                                </>
+                            )}
+                          </div>
                           <button onClick={() => setShowVerifyModal({timestamp: Number(drawTime), numbers: drawData.winningNumbers})} className="px-3 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/10 transition-colors flex items-center gap-2"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>{t.verifyFairness}</button>
                         </div>
                     ))
