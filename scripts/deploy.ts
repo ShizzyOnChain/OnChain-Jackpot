@@ -19,7 +19,7 @@ dotenv.config();
 const CONTRACT_BYTECODE = "PASTE_YOUR_CONTRACT_BYTECODE_HERE";
 
 async function main() {
-  console.log("🚀 Starting deployment of 4/9 OnChain Jackpot...");
+  console.log("🚀 Starting deployment of 4/9 Onchain Jackpot...");
 
   const rpcUrl = process.env.MERLIN_RPC_URL;
   if (!rpcUrl) throw new Error("MERLIN_RPC_URL not found.");
