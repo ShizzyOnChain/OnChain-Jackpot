@@ -10,12 +10,13 @@ This project contains the frontend application and backend management scripts fo
 - `/scripts/`: Contains Node.js scripts for managing the smart contract.
   - `deploy.ts`: Script to deploy a new version of the contract.
   - `settle.ts`: The automated "Keeper" script that continuously settles draws.
+- `Dockerfile` & `docker-compose.yml`: Files for professional, 24/7 deployment.
 
 ---
 
-## Owner Quick Start: Automating Draws
+## Owner Quick Start: Local Testing
 
-To fully automate the settlement process, you will run the Keeper script. This script runs forever, checking every minute to see if a draw needs to be settled.
+To run the keeper on your local machine for testing.
 
 ### 1. First-Time Setup
 
@@ -41,14 +42,44 @@ Open your terminal in the project directory and run:
 npm install
 ```
 
-### 2. Start the Automation Keeper
-
-To start the automated process, run the following command in your terminal:
+### 2. Run the Keeper Locally
 
 ```bash
 npm run keeper
 ```
 
-The script will now run continuously.
+---
 
-**IMPORTANT:** For the automation to work, this script must be left running 24/7. You should run this command in a terminal on a server or a computer that is always on and connected to the internet. For production use, consider tools like `pm2` or `screen` to manage the process.
+## Achieving 24/7 Uptime: The Professional Way
+
+For a real, live application, you cannot run the keeper script on your personal computer. It needs to run on a server that is always on and connected to the internet.
+
+To make this incredibly simple, this project includes a professional setup using **Docker**. This packages the keeper script into a self-contained unit that can be deployed anywhere.
+
+### How to Deploy Your Unstoppable Keeper
+
+Follow these steps on a cloud server (e.g., from DigitalOcean, Vultus, AWS, etc.).
+
+**1. Install Docker on Your Server**
+
+First, you need to install Docker and Docker Compose on your server. [Follow the official Docker instructions for your server's operating system](https://docs.docker.com/engine/install/).
+
+**2. Copy Project Files**
+
+Copy all the project files from your computer to your server.
+
+**3. Create the `.env` File**
+
+On the server, create the `.env` file and add your `MERLIN_RPC_URL` and `PRIVATE_KEY`, just like you did for local testing.
+
+**4. Start the Keeper**
+
+Navigate to your project directory on the server and run this single command:
+
+```bash
+docker-compose up --build -d
+```
+
+That's it. Your keeper is now running in the background. It will automatically restart if your server reboots, ensuring your jackpot is always settled on time.
+
+To check the logs of your running keeper, you can use `docker-compose logs -f`.

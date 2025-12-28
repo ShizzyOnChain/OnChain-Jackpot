@@ -1,7 +1,16 @@
-import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import React, { useEffect, useMemo, useState, useCallback, Suspense } from "react";
 import ReactDOM from "react-dom/client";
 import { ethers } from "ethers";
 import { MERLIN_NETWORK, CONTRACT_ADDRESS, LOTTERY_ABI } from "./constants";
+import { Ticket, Draw } from "./types";
+
+const ProfileModal = React.lazy(() => import('./components/ProfileModal'));
+const ResultsModal = React.lazy(() => import('./components/ResultsModal'));
+const GuideModal = React.lazy(() => import('./components/GuideModal'));
+
+import { Pill } from "./components/Pill";
+import { PrimaryButton } from "./components/PrimaryButton";
+import { TicketCard } from "./components/TicketCard";
 
 // FIX: Add type definition for window.ethereum to fix TypeScript errors.
 declare global {
@@ -22,97 +31,16 @@ const PRELOADED_AVATARS = [
 const COINGECKO_API_URL = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd";
 const ONCHAIN_SEED_PHRASE = "onchain-jackpot-v3-merlin-stable";
 
-// --- TYPES ---
-interface Ticket {
-  id: string;
-  owner: string;
-  numbers: number[];
-  drawTimestamp: number;
-  claimed: boolean;
-}
-
-interface Draw {
-    jackpotTotal: number;
-    winnerCount: number;
-    prizePerWinner: number;
-    winningNumbers: number[];
-    settled: boolean;
-    isRollover?: boolean;
-}
-
 // --- UTILS ---
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
-const getWinningNumbersForSlot = (timestamp: number): number[] => {
-  const seed = new Date(timestamp).toISOString() + ONCHAIN_SEED_PHRASE;
-  let hash = 0;
-  for (let i = 0; i < seed.length; i++) {
-    hash = ((hash << 5) - hash) + seed.charCodeAt(i);
-    hash |= 0;
-  }
-  const result: number[] = [];
-  let currentHash = hash;
-  while (result.length < 4) {
-    currentHash = (currentHash * 1664525 + 1013904223) | 0;
-    const num = (Math.abs(currentHash) % 9) + 1;
-    if (!result.includes(num)) result.push(num);
-  }
-  return result.sort((a, b) => a - b);
-};
-
 // --- SUB-COMPONENTS ---
-const Pill: React.FC<{ children: React.ReactNode; variant?: 'default' | 'gold' | 'mint' | 'danger' | 'info' | 'warning' }> = ({ children, variant = 'default' }) => {
-  const styles = {
-    gold: { bg: "rgba(212, 175, 55, 0.15)", color: "#d4af37", border: "rgba(212, 175, 55, 0.4)" },
-    mint: { bg: "rgba(16, 185, 129, 0.1)", color: "#10b981", border: "rgba(16, 185, 129, 0.2)" },
-    danger: { bg: "rgba(239, 68, 68, 0.1)", color: "#ef4444", border: "rgba(239, 68, 68, 0.2)" },
-    warning: { bg: "rgba(245, 158, 11, 0.1)", color: "#f59e0b", border: "rgba(245, 158, 11, 0.2)" },
-    info: { bg: "rgba(59, 130, 246, 0.1)", color: "#3b82f6", border: "rgba(59, 130, 246, 0.2)" },
-    default: { bg: "rgba(127,230,195,0.14)", color: "#04211C", border: "rgba(127,230,195,0.55)" }
-  };
-  const s = styles[variant];
-  return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider whitespace-nowrap dark:border-emerald-500/30 ${variant === 'default' ? 'dark:text-emerald-400' : ''}`} style={{ background: s.bg, color: variant === 'default' ? undefined : s.color, border: `1px solid ${s.border}` }}>
-      {children}
-    </span>
-  );
-};
-
-const PrimaryButton: React.FC<{ children: React.ReactNode; onClick?: () => void; disabled?: boolean; loading?: boolean; variant?: 'default' | 'warning' | 'success' | 'outline' | 'gold' | 'ai' }> = ({ 
-  children, onClick, disabled, loading, variant = 'default'
-}) => {
-  const getStyles = () => {
-    if (variant === 'warning') return { bg: '#ef4444', shadow: "0 10px 26px rgba(239,68,68,0.18)" };
-    if (variant === 'success') return { bg: '#10b981', shadow: "0 10px 26px rgba(16,185,129,0.18)" };
-    if (variant === 'gold') return { bg: '#d4af37', shadow: "0 10px 26px rgba(212,175,55,0.3)" };
-    if (variant === 'outline') return { bg: 'transparent', shadow: 'none', border: '2px solid rgba(6, 58, 48, 0.10)', color: '#04211C' };
-    if (variant === 'ai') return { bg: '#6366f1', shadow: "0 10px 26px rgba(99,102,241,0.18)" };
-    return { bg: '#04211C', shadow: "0 10px 26px rgba(4,33,28,0.18)" };
-  };
-  const s = getStyles();
-  return (
-    <button disabled={disabled || loading} onClick={onClick} className={`w-full rounded-2xl px-4 py-3 text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2 dark:border-emerald-500/20 dark:text-white ${variant === 'outline' ? 'dark:border-white/20' : ''}`} style={{ background: s.bg, color: variant === 'outline' ? undefined : 'white', border: s.border || 'none', boxShadow: s.shadow }}>
-      {loading ? <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" /> : children}
-    </button>
-  );
-};
-
 const TimeDisplay = ({ value, label }: { value: string, label: string }) => (
   <div className="flex flex-col items-center">
     <div className="text-2xl md:text-4xl font-black font-display tracking-tighter text-[#04211C] dark:text-white">{value}</div>
     <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-emerald-600/50 dark:text-white/60">{label}</span>
   </div>
 );
-
-function Step({ num, title, desc }: { num: number; title: string; desc: string }) {
-  return (
-    <div className="flex flex-col items-center text-center">
-      <div className="h-12 w-12 rounded-2xl bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 flex items-center justify-center font-black text-xl mb-4">{num}</div>
-      <h4 className="font-bold mb-2 text-sm text-[#04211C] dark:text-white">{title}</h4>
-      <p className="text-[11px] text-emerald-900/60 dark:text-white/40 leading-relaxed font-medium">{desc}</p>
-    </div>
-  );
-};
 
 const TicketPreview = ({ t, numbers, timestamp, formatDate, formatTime }: any) => {
     const displayNumbers = [...numbers];
@@ -206,8 +134,6 @@ function App() {
 
   const [profile, setProfile] = useState({ username: "LuckyPlayer", bio: "Onchain Enthusiast", avatarUrl: PRELOADED_AVATARS[0] });
 
-  const [livePredictionNumbers, setLivePredictionNumbers] = useState<(number | null)[]>([null, null, null, null]);
-  const [predictionPhase, setPredictionPhase] = useState(0); 
 
   // --- TRANSLATIONS ---
   const translations = {
@@ -666,33 +592,6 @@ function App() {
       return timeSinceSettle > 13 * 60 * 60 * 1000;
   }, [lastSettledTimestamp, now, previousDraws]);
 
-  const runLivePredictionSequence = useCallback(async () => {
-    setPredictionPhase(0);
-    setLivePredictionNumbers([null, null, null, null]);
-    
-    const lastDrawTime = Object.keys(previousDraws).map(Number).sort((a,b) => b-a)[0];
-    if (!lastDrawTime) return;
-
-    const finalNumbers = previousDraws[lastDrawTime].winningNumbers;
-    for (let i = 1; i <= 4; i++) {
-      await new Promise(r => setTimeout(r, 1200));
-      setLivePredictionNumbers(prev => {
-        const next = [...prev];
-        next[i - 1] = finalNumbers[i - 1];
-        return next;
-      });
-      setPredictionPhase(i);
-    }
-    await new Promise(r => setTimeout(r, 800));
-    setPredictionPhase(5);
-  }, [previousDraws]);
-
-  useEffect(() => { 
-    if (showResultsModal && Object.keys(previousDraws).length > 0) {
-      runLivePredictionSequence();
-    }
-  }, [showResultsModal, runLivePredictionSequence, previousDraws]);
-
   const handleRandomize = () => {
     const nums: number[] = [];
     while (nums.length < 4) {
@@ -711,59 +610,6 @@ function App() {
   const formatTime = (ts: number | string) => {
     const d = new Date(ts);
     return `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())} UTC`;
-  };
-
-  const TicketCard: React.FC<{ ticket: Ticket }> = ({ ticket }) => {
-    const draw = previousDraws[ticket.drawTimestamp];
-    const isPast = !!draw;
-    
-    const isWinner = useMemo(() => {
-        if (!draw) return false;
-        // Bitmask check to match contract logic
-        const ticketMask = ticket.numbers.reduce((mask, n) => mask | (1 << n), 0);
-        const winningMask = draw.winningNumbers.reduce((mask, n) => mask | (1 << n), 0);
-        return ticketMask === winningMask;
-    }, [ticket.numbers, draw]);
-  
-    const hue = useMemo(() => parseInt(ticket.id.slice(0, 6), 16) % 360, [ticket.id]);
-    const gradientStyle = { background: `linear-gradient(135deg, hsl(${hue}, 70%, 50%), hsl(${(hue + 45) % 360}, 80%, 60%))` };
-    const status = isWinner ? 'winner' : isPast ? 'played' : 'upcoming';
-  
-    return (
-        <div className={`rounded-3xl border-2 overflow-hidden shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 ${isWinner && !ticket.claimed ? 'border-yellow-400 ring-4 ring-yellow-400/20' : 'dark:border-emerald-500/10 border-gray-100'}`}>
-            <div className="p-6 text-white relative" style={gradientStyle}>
-                <div className="relative z-10">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <h3 className="font-bold font-display text-lg">Onchain Jackpot</h3>
-                            <p className="text-xs opacity-60 font-mono">#{ticket.id}</p>
-                        </div>
-                        {status === 'winner' && <Pill variant="gold">{t.winner}</Pill>}
-                        {status === 'upcoming' && <Pill variant="mint">UPCOMING</Pill>}
-                        {status === 'played' && <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider whitespace-nowrap bg-black/10 text-white/70 border border-white/20">PLAYED</span>}
-                    </div>
-                    <div className="flex justify-center gap-3 my-8">
-                        {ticket.numbers.map((n: number, i: number) => <div key={i} className="h-16 w-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center text-3xl font-black border border-white/30 shadow-md">{n}</div>)}
-                    </div>
-                    <div>
-                        <p className="text-xs font-bold uppercase tracking-widest opacity-60 text-center">Draw Date</p>
-                        <p className="text-center font-bold">{formatDate(ticket.drawTimestamp)} - {formatTime(ticket.drawTimestamp)}</p>
-                    </div>
-                </div>
-            </div>
-            {isWinner && (
-                <div className="p-4 bg-white dark:bg-[#031814]">
-                    {ticket.claimed ? <div className="py-2 text-center rounded-lg bg-gray-100 dark:bg-gray-700 text-xs font-bold uppercase tracking-wider text-gray-400">{t.claimed}</div> : <PrimaryButton onClick={() => handleClaim(ticket.id)} loading={claimStatus[ticket.id] === 'claiming'} variant="gold">{t.claimPrize}</PrimaryButton>}
-                </div>
-            )}
-            {isPast && !isWinner && draw && (
-                <div className="p-4 text-center bg-gray-50 dark:bg-[#021411]">
-                    <p className="text-[9px] font-bold text-emerald-800/40 dark:text-white/30 uppercase tracking-widest mb-2">{t.winningNums}</p>
-                    <div className="flex gap-1.5 justify-center">{draw.winningNumbers.map((n, i) => <div key={i} className="h-8 w-8 rounded-lg bg-gray-200 dark:bg-white/10 text-emerald-700 dark:text-emerald-400 flex items-center justify-center text-sm font-bold">{n}</div>)}</div>
-                </div>
-            )}
-        </div>
-    );
   };
   
   return (
@@ -853,7 +699,7 @@ function App() {
                     {tickets.length === 0 ? (
                          <div className="text-center py-12 px-6 rounded-2xl bg-gray-50 dark:bg-emerald-500/5 border border-gray-100 dark:border-emerald-500/10"><h3 className="mt-4 text-sm font-semibold text-gray-800 dark:text-white">{t.noTicketsFound}</h3><p className="text-xs text-gray-400 mt-2">{t.mintToSee}</p></div>
                     ) : (
-                        tickets.map(ticket => <TicketCard key={ticket.id} ticket={ticket} />)
+                        tickets.map(ticket => <TicketCard key={ticket.id} ticket={ticket} t={t} previousDraws={previousDraws} handleClaim={handleClaim} claimStatus={claimStatus} formatDate={formatDate} formatTime={formatTime} />)
                     )}
                 </div>
             ) : (
@@ -969,83 +815,41 @@ function App() {
           </div>
         </section>
 
-        {/* --- All Modals --- */}
-        {showResultsModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
-            <div className="relative z-10 w-full max-w-lg bg-white dark:bg-[#04211C] rounded-[2rem] p-10 text-center shadow-2xl animate-in zoom-in-95 duration-300">
-              <button onClick={() => setShowResultsModal(false)} className="absolute top-6 right-6 p-2 dark:text-white hover:scale-110 transition-all"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-              <h2 className="text-3xl font-black font-display text-[#04211C] dark:text-white mb-8">{t.latestResult}</h2>
-              {Object.keys(previousDraws).length > 0 ? (
-                <>
-                  <div className="flex justify-center gap-4 mb-12 h-24">
-                      {livePredictionNumbers.map((n, i) => (<div key={i} className={`h-20 w-20 rounded-full border-4 flex items-center justify-center transition-all duration-700 ${n !== null ? 'scale-110 border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 shadow-lg' : 'border-dashed border-emerald-100 dark:border-emerald-500/20'}`}><span className="font-black text-2xl dark:text-white">{n !== null ? n : '?'}</span></div>))}
-                  </div>
-                  <p className="text-[10px] font-black text-emerald-800/40 dark:text-white/30 uppercase tracking-widest">{predictionPhase < 4 ? t.verifyingOnchain : t.revealSuccess}</p>
-                </>
-              ) : (
-                <div className="py-8">
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t.noSettledPredictions}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {showGuideModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm" onClick={() => setShowGuideModal(false)}>
-            <div className="relative z-10 w-full max-w-3xl bg-white dark:bg-[#04211C] rounded-[2rem] p-10 shadow-2xl animate-in zoom-in-95 duration-300 overflow-y-auto max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowGuideModal(false)} className="absolute top-6 right-6 p-2 dark:text-white hover:scale-110 transition-all"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-              <h2 className="text-3xl font-black font-display text-[#04211C] dark:text-white mb-10 text-center">{t.howItWorks}</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                <Step num={1} title={t.step1Title} desc={t.step1Desc} />
-                <Step num={2} title={t.step2Title} desc={t.step2Desc} />
-                <Step num={3} title={t.step3Title} desc={t.step3Desc} />
-                <Step num={4} title={t.step4Title} desc={t.step4Desc} />
-              </div>
-
-              <hr className="my-10 border-gray-200 dark:border-emerald-500/10" />
-
-              <div className="grid md:grid-cols-2 gap-8 lg:gap-12 text-left">
-                <div>
-                  <h3 className="text-xl font-bold font-display text-[#04211C] dark:text-white mb-6">{t.rules}</h3>
-                  <ul className="space-y-4">
-                    {[t.rule1, t.rule2, t.rule3, t.rule4].map((rule, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <div className="p-1 bg-emerald-100 dark:bg-emerald-500/10 rounded-full mt-1 shrink-0">
-                          <svg className="w-4 h-4 text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                        </div>
-                        <span className="text-sm text-emerald-900/70 dark:text-white/60 font-medium">{rule}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold font-display text-[#04211C] dark:text-white mb-6">{t.disclaimer}</h3>
-                  <p className="text-sm text-emerald-900/60 dark:text-white/50 font-medium leading-relaxed border-l-4 border-emerald-200 dark:border-emerald-500/20 pl-6">{t.disclaimerText}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {showProfileModal && account && (
-          <ProfileModal
-            t={t}
-            isOpen={showProfileModal}
-            onClose={() => setShowProfileModal(false)}
-            profile={profile}
-            setProfile={setProfile}
-            account={account}
-            referralBalance={referralBalance}
-            btcPrice={btcPrice}
-            onClaimReferral={handleClaimReferral}
-            isClaimingReferral={isClaimingReferral}
-            onLogout={disconnectWallet}
-            tickets={tickets}
-            TicketCard={TicketCard}
-          />
-        )}
+        {/* --- All Modals (Lazy Loaded) --- */}
+        <Suspense fallback={<div />}>
+            {showResultsModal && (
+                <ResultsModal
+                    t={t}
+                    onClose={() => setShowResultsModal(false)}
+                    previousDraws={previousDraws}
+                />
+            )}
+            {showGuideModal && (
+                <GuideModal t={t} onClose={() => setShowGuideModal(false)} />
+            )}
+            {showProfileModal && account && (
+                <ProfileModal
+                    t={t}
+                    isOpen={showProfileModal}
+                    onClose={() => setShowProfileModal(false)}
+                    profile={profile}
+                    setProfile={setProfile}
+                    account={account}
+                    referralBalance={referralBalance}
+                    btcPrice={btcPrice}
+                    onClaimReferral={handleClaimReferral}
+                    isClaimingReferral={isClaimingReferral}
+                    onLogout={disconnectWallet}
+                    tickets={tickets}
+                    TicketCardComponent={TicketCard}
+                    formatDate={formatDate}
+                    formatTime={formatTime}
+                    handleClaim={handleClaim}
+                    claimStatus={claimStatus}
+                    previousDraws={previousDraws}
+                />
+            )}
+        </Suspense>
         
       </main>
       
@@ -1055,116 +859,6 @@ function App() {
     </div>
   );
 }
-
-const ProfileModal = ({ t, isOpen, onClose, profile, setProfile, account, referralBalance, btcPrice, onClaimReferral, isClaimingReferral, onLogout, tickets, TicketCard }: any) => {
-    const [localProfile, setLocalProfile] = useState(profile);
-    const [copyButtonText, setCopyButtonText] = useState(t.copyLink);
-    const [activeTab, setActiveTab] = useState('entries');
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-        setLocalProfile(profile);
-    }, [profile]);
-
-    const handleSave = () => {
-        localStorage.setItem(`profile_${account}`, JSON.stringify(localProfile));
-        setProfile(localProfile);
-        onClose();
-    };
-
-    const handleCopy = () => {
-        const referralLink = `${window.location.origin}?ref=${account}`;
-        navigator.clipboard.writeText(referralLink);
-        setCopyButtonText(t.copied);
-        setTimeout(() => setCopyButtonText(t.copyLink), 2000);
-    };
-    
-    const handleAvatarClick = () => {
-        fileInputRef.current?.click();
-    };
-
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setLocalProfile({ ...localProfile, avatarUrl: reader.result as string });
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
-    if (!isOpen) return null;
-
-    return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-            <div className="relative z-10 w-full max-w-4xl bg-white dark:bg-[#04211C] rounded-[2rem] shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                <button onClick={onClose} className="absolute top-6 right-6 p-2 text-gray-400 dark:text-white hover:scale-110 transition-all z-20"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-                <div className="grid grid-cols-1 md:grid-cols-12">
-                    <div className="md:col-span-5 bg-gray-50 dark:bg-emerald-500/5 p-8 border-r border-gray-100 dark:border-emerald-500/10 flex flex-col">
-                        <h2 className="text-2xl font-bold font-display text-[#04211C] dark:text-white mb-8">{t.profile}</h2>
-                        
-                        <div className="relative w-32 h-32 mx-auto mb-6 group">
-                            <img src={localProfile.avatarUrl} alt="Avatar" className="w-full h-full rounded-full object-cover border-4 border-white dark:border-[#04211C] shadow-lg"/>
-                            <button onClick={handleAvatarClick} className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity">{t.uploadAvatar}</button>
-                            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
-                        </div>
-
-                        <div className="space-y-4 mb-8">
-                            <div><label className="text-[10px] font-black text-emerald-900/40 dark:text-white/30 uppercase tracking-widest mb-2 block">{t.nameLabel}</label><input type="text" value={localProfile.username} onChange={e => setLocalProfile({...localProfile, username: e.target.value})} className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-emerald-500/20 bg-white dark:bg-emerald-500/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"/></div>
-                            <div><label className="text-[10px] font-black text-emerald-900/40 dark:text-white/30 uppercase tracking-widest mb-2 block">{t.bioLabel}</label><textarea value={localProfile.bio} onChange={e => setLocalProfile({...localProfile, bio: e.target.value})} className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-emerald-500/20 bg-white dark:bg-emerald-500/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all" rows={3}></textarea></div>
-                        </div>
-
-                        <div className="mt-auto space-y-2">
-                           <PrimaryButton onClick={handleSave}>{t.save}</PrimaryButton>
-                           <PrimaryButton onClick={onLogout} variant="outline">{t.logout}</PrimaryButton>
-                        </div>
-                    </div>
-                    <div className="md:col-span-7 p-8 flex flex-col">
-                         <div className="border-b border-gray-200 dark:border-emerald-500/10 mb-6">
-                            <nav className="-mb-px flex space-x-6" aria-label="Tabs">
-                                <button onClick={() => setActiveTab('entries')} className={`${activeTab === 'entries' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-white/40 dark:hover:text-white'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}>{t.myTickets}</button>
-                                <button onClick={() => setActiveTab('rewards')} className={`${activeTab === 'rewards' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-white/40 dark:hover:text-white'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}>{t.referral}</button>
-                                <button onClick={() => setActiveTab('nfts')} className={`${activeTab === 'nfts' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-white/40 dark:hover:text-white'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}>{t.myNfts}</button>
-                            </nav>
-                        </div>
-                        
-                        <div className="flex-grow overflow-y-auto max-h-[60vh] pr-2 -mr-2">
-                             {activeTab === 'entries' && (
-                                <div className="space-y-4">
-                                    {tickets.length > 0 ? tickets.map((ticket: Ticket) => <TicketCard key={ticket.id} ticket={ticket} />) : <div className="text-center py-12 px-6 rounded-2xl bg-gray-50 dark:bg-emerald-500/5 border border-gray-100 dark:border-emerald-500/10"><h3 className="mt-4 text-sm font-semibold text-gray-800 dark:text-white">{t.noTicketsFound}</h3><p className="text-xs text-gray-400 mt-2">{t.mintToSee}</p></div>}
-                                </div>
-                            )}
-                            {activeTab === 'rewards' && (
-                                <div className="space-y-6">
-                                    <div><label className="text-[10px] font-black text-emerald-900/40 dark:text-white/30 uppercase tracking-widest mb-2 block">{t.yourReferralLink}</label><div className="flex gap-2"><input type="text" readOnly value={`${window.location.origin}?ref=${account}`} className="flex-grow px-4 py-2 rounded-lg border border-gray-200 dark:border-emerald-500/20 bg-gray-50 dark:bg-emerald-500/5 dark:text-white/70 focus:outline-none text-sm"/><button onClick={handleCopy} className="px-4 py-2 rounded-lg bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 text-xs font-bold hover:bg-emerald-200 dark:hover:bg-emerald-500/20 transition-colors w-24">{copyButtonText}</button></div></div>
-                                    <div className="bg-emerald-50 dark:bg-emerald-500/5 rounded-2xl p-6 border dark:border-emerald-500/10 text-center">
-                                        <p className="text-[10px] font-black text-emerald-900/40 dark:text-white/30 uppercase tracking-widest mb-2">{t.available}</p>
-                                        <p className="text-3xl font-black font-display dark:text-white">{referralBalance.toFixed(6)} BTC</p>
-                                        {btcPrice && <p className="text-sm font-medium text-emerald-600/60 dark:text-emerald-400/60 mt-1">(${(referralBalance * btcPrice).toLocaleString('en-US', { style: 'currency', currency: 'USD' })})</p>}
-                                        <div className="mt-6"><PrimaryButton onClick={onClaimReferral} loading={isClaimingReferral} disabled={referralBalance <= 0 || isClaimingReferral} variant="success">{t.claimAll}</PrimaryButton></div>
-                                    </div>
-                                </div>
-                            )}
-                             {activeTab === 'nfts' && (
-                                <div className="space-y-4">
-                                    {tickets.length > 0 ? (
-                                        tickets.map((ticket: Ticket) => <TicketCard key={ticket.id} ticket={ticket} />)
-                                    ) : (
-                                        <div className="text-center py-12 px-6 rounded-2xl bg-gray-50 dark:bg-emerald-500/5 border border-gray-100 dark:border-emerald-500/10">
-                                            <h3 className="mt-4 text-sm font-semibold text-gray-800 dark:text-white">{t.noNftTickets}</h3>
-                                            <p className="text-xs text-gray-400 mt-2">{t.mintOneToStart}</p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
 
 
 const root = ReactDOM.createRoot(document.getElementById('root')!);
